@@ -27,10 +27,10 @@ except ImportError as e:
 
 # Page configuration
 st.set_page_config(
-    page_title="HR Assistant Agent",
-    page_icon="👔",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="HR Assistant",
+    page_icon="💼",
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
 # Custom CSS for better styling
