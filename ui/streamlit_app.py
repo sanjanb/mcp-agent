@@ -183,6 +183,22 @@ def initialize_components():
         return None
 
 
+def warmup_system(components):
+    """Warm caches and providers to reduce first-response latency."""
+    try:
+        # Warm vector DB index
+        _ = components["policy_tool"].search_policies("policy", top_k=1)
+    except Exception:
+        pass
+    try:
+        # Warm LLM provider (non-streaming, discard)
+        rag = components["rag_engine"]
+        active = getattr(rag, 'active_provider', None)
+        if active:
+            _ = rag.generate_response("warmup", [], [])
+    except Exception:
+        pass
+
 def display_message(role, content, metadata=None):
     """Display a chat message with clean styling (no images/emojis)."""
     css_class = "user-message" if role == "user" else "assistant-message"
@@ -229,6 +245,11 @@ def main():
         st.error("System initialization failed. Please check the logs and try again.")
         return
     
+    # One-time warmup to speed first interaction
+    if "_warmed" not in st.session_state:
+        warmup_system(components)
+        st.session_state._warmed = True
+
     # Header section
     st.markdown("""
     <div class="header">
@@ -309,7 +330,8 @@ def main():
         
         # Settings
         with st.expander("⚙️ Settings"):
-            max_results = st.slider("Search results", 1, 10, 5)
+            max_results = st.slider("Search results", 1, 10, 3)
+            fast_mode = st.checkbox("Fast responses (lower context, quicker stream)", True)
             show_debug = st.checkbox("Debug mode", False)
     
     # Initialize session state
@@ -406,8 +428,10 @@ def main():
                     )
                     
                     # Search and generate response
+                    # Limit results more aggressively in fast mode
+                    effective_top_k = max_results if not 'fast_mode' in locals() or not fast_mode else min(max_results, 3)
                     search_result = components["policy_tool"].search_policies(
-                        user_input, top_k=max_results
+                        user_input, top_k=effective_top_k
                     )
                     
                     conversation_history = components["conv_manager"].get_history(
@@ -425,10 +449,13 @@ def main():
                     if rag_response.get("success"):
                         full_text = rag_response.get("response", "")
                         words = full_text.split()
-                        for w in words:
-                            accumulated += (w + " ")
+                        # Faster perceived streaming in fast mode
+                        chunk_size = 5 if ('fast_mode' in locals() and fast_mode) else 1
+                        delay = 0.005 if ('fast_mode' in locals() and fast_mode) else 0.02
+                        for i in range(0, len(words), chunk_size):
+                            accumulated += (" ".join(words[i:i+chunk_size]) + " ")
                             placeholder.markdown(f"<div class='assistant-message'>{accumulated}</div>", unsafe_allow_html=True)
-                            time.sleep(0.02)
+                            time.sleep(delay)
                         # finalize message
                         placeholder.empty()
                         st.session_state.messages.append({
