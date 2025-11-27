@@ -246,6 +246,24 @@ VECTOR_DB_PATH=./data/vector_db
 VECTOR_DB_COLLECTION_NAME=hr_policies
 HR_DOCUMENTS_PATH=./data/hr_documents
 EMBEDDING_MODEL=all-MiniLM-L6-v2
+# Optional: Gemini
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-1.5-pro
+
+# Redis cache (for conversation summaries)
+REDIS_URL=redis://localhost:6379/0
+# or
+# REDIS_HOST=localhost
+# REDIS_PORT=6379
+# REDIS_DB=0
+
+# Low-latency tuning
+FAST_OPENAI_MODEL=gpt-3.5-turbo
+FAST_GEMINI_MODEL=gemini-1.5-flash
+LOW_LATENCY_MAX_TOKENS=350
+LOW_LATENCY_TEMPERATURE=0.0
+# Force basic-only in low-latency (fallback search)
+# LOW_LATENCY_BASIC_ONLY=true
 ```
 
 ### Adding Your Own HR Documents
@@ -275,6 +293,26 @@ python tools/policy_rag/rag_engine.py
 2. Ask a question: "How many vacation days do I get?"
 3. Verify response includes citations
 4. Check debug info in sidebar
+
+## ⚡ Warm-up (reduce first-response latency)
+
+Run the warm-up script before starting Streamlit to pre-initialize the vector index and the LLM provider:
+
+```powershell
+python scripts/warmup.py
+```
+
+Then start the app:
+
+```powershell
+streamlit run ui/streamlit_app.py
+```
+
+## 🗃️ Caching
+
+- Conversation summaries are cached in Redis per session (`conv:summary:<user_id>`) for ~30 minutes.
+- If Redis is not available, an in-memory fallback is used (per-process).
+- Summaries shrink the context sent to the model by combining a compact summary with just the latest turns.
 
 ## 📚 Sample Data
 
