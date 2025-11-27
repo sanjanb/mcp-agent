@@ -29,7 +29,7 @@ except ImportError as e:
 st.set_page_config(
     page_title="HR Assistant",
     page_icon="💼",
-    layout="centered",
+    layout="wide",
     initial_sidebar_state="collapsed"
 )
 
@@ -46,7 +46,7 @@ st.markdown("""
     }
 
     html, body, .main, .block-container { background-color: var(--bg) !important; }
-    .block-container { max-width: 860px; padding-top: 24px; }
+    .block-container { max-width: 960px; padding-top: 24px; }
 
     * { color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
 
@@ -69,7 +69,7 @@ st.markdown("""
     }
 
     .chat-container {
-        max-height: 52vh;
+        height: 58vh;
         overflow-y: auto;
         padding: 12px;
         border: 1px solid var(--border);
@@ -88,11 +88,18 @@ st.markdown("""
     .user-message strong, .assistant-message strong { color: var(--muted); font-weight: 500; }
 
     .input-section {
+        position: sticky;
+        bottom: 0;
         background: var(--panel);
         padding: 12px;
         border-radius: 12px;
         border: 1px solid var(--border);
+        box-shadow: 0 -8px 16px rgba(0,0,0,0.25);
     }
+
+    .typing-indicator { color: var(--muted); font-size: 12px; padding: 6px 0; }
+    .pulse { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--text); animation: pulse 1s infinite; margin-left: 6px; }
+    @keyframes pulse { 0% { opacity: 0.2 } 50% { opacity: 1 } 100% { opacity: 0.2 } }
 
     .stTextArea > div > div > textarea {
         background: transparent !important;
@@ -121,6 +128,12 @@ st.markdown("""
     }
 
     .footer { color: var(--muted); font-size: 12px; text-align: center; padding: 12px 0; }
+    
+    /* Mobile tweaks */
+    @media (max-width: 768px) {
+        .chat-container { height: 50vh; }
+        .stButton > button { padding: 12px 14px !important; }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -217,14 +230,15 @@ def main():
     active_provider = getattr(rag_engine, 'active_provider', None)
 
     st.markdown("""
-    <div class="status-row">
-        <span class="badge">Ready</span>
-        <span class="badge">%s Documents</span>
-        <span class="badge">%s</span>
+    <div class="status-row" role="status" aria-label="System status">
+        <span class="badge">Docs: %s</span>
+        <span class="badge">Provider: %s</span>
+        <span class="badge">Mode: %s</span>
     </div>
     """ % (
         (stats.get('unique_documents', 0) if stats else 0),
-        ("AI Ready" if active_provider else "Basic Mode")
+        (active_provider.title() if active_provider else "Auto"),
+        ("AI" if active_provider else "Basic")
     ), unsafe_allow_html=True)
     
     # Simplified sidebar
@@ -289,7 +303,7 @@ def main():
         st.session_state.user_id = f"user_{int(time.time())}"
     
     # Chat conversation display
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    st.markdown('<div class="chat-container" id="chat">', unsafe_allow_html=True)
     
     if st.session_state.messages:
         for message in st.session_state.messages:
@@ -312,18 +326,57 @@ def main():
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Simplified input section
-    st.markdown('<div class="input-section">', unsafe_allow_html=True)
+    # Input section (sticky bottom)
+    st.markdown('<div class="input-section" role="form" aria-label="Ask a question">', unsafe_allow_html=True)
     user_input = st.text_area(
         "Ask your question:",
         placeholder="Type your HR question here...",
         height=80,
         key="user_input",
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        help="Press Enter to send, Shift+Enter for newline. Commands: /clear, /help, /provider openai|gemini|auto"
     )
-    
-    if st.button("💬 Ask Question", type="primary", use_container_width=True):
-        if user_input.strip():
+    send = st.button("Send", type="primary", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Keyboard-first UX: interpret commands
+    def handle_command(text: str):
+        t = text.strip()
+        if t.lower() == "/clear":
+            if "user_id" in st.session_state:
+                components["conv_manager"].clear_history(st.session_state.user_id)
+            st.session_state.messages = []
+            st.rerun()
+        if t.lower() == "/help":
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": "Commands: /clear, /help, /provider openai|gemini|auto"
+            })
+            st.rerun()
+        if t.lower().startswith("/provider"):
+            parts = t.split()
+            if len(parts) >= 2:
+                choice = parts[1].lower()
+                if choice in ["openai", "gemini", "auto"]:
+                    try:
+                        components["rag_engine"].set_provider(choice)
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": f"Provider set to {choice.title()}"
+                        })
+                        st.rerun()
+                    except Exception as e:
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": f"Unable to set provider: {e}"
+                        })
+                        st.rerun()
+
+    if send and user_input.strip():
+        # Commands first
+        if user_input.strip().startswith("/"):
+            handle_command(user_input)
+        else:
             # Process the question
             with st.spinner("🤔 Thinking..."):
                 try:
@@ -345,42 +398,49 @@ def main():
                         st.session_state.user_id
                     )[:-1]
                     
+                    # Streaming responses: simulate token-by-token
                     rag_response = components["rag_engine"].generate_response(
                         user_input,
                         search_result.get("chunks", []),
                         conversation_history
                     )
-                    
-                    # Add response
-                    if rag_response["success"]:
-                        response_text = rag_response["response"]
+                    placeholder = st.empty()
+                    accumulated = ""
+                    if rag_response.get("success"):
+                        full_text = rag_response.get("response", "")
+                        words = full_text.split()
+                        for w in words:
+                            accumulated += (w + " ")
+                            placeholder.markdown(f"<div class='assistant-message'><strong>🤖</strong><br>{accumulated}</div>", unsafe_allow_html=True)
+                            time.sleep(0.02)
+                        # finalize message
+                        placeholder.empty()
                         st.session_state.messages.append({
                             "role": "assistant",
-                            "content": response_text,
+                            "content": full_text,
                             "metadata": rag_response
                         })
                         components["conv_manager"].add_turn(
-                            st.session_state.user_id, "assistant", response_text
+                            st.session_state.user_id, "assistant", full_text
                         )
                     else:
-                        error_message = f"Sorry, I encountered an error: {rag_response.get('error', 'Unknown error')}"
                         st.session_state.messages.append({
                             "role": "assistant",
-                            "content": error_message
+                            "content": f"Using fallback. Error: {rag_response.get('error', 'Unknown error')}"
                         })
                     
                     # Refresh to show new messages
                     st.rerun()
                     
                 except Exception as e:
-                    st.error(f"Something went wrong: {e}")
+                    st.warning(f"Something went wrong, retry available. {e}")
                     st.session_state.messages.append({
                         "role": "assistant",
                         "content": "I apologize, but I encountered a technical error. Please try again."
                     })
                     st.rerun()
-        else:
-            st.warning("Please enter a question first.")
+    elif send and not user_input.strip():
+        st.warning("Please enter a question first.")
     
     st.markdown('</div>', unsafe_allow_html=True)
     
