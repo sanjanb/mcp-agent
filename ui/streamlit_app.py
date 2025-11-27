@@ -36,43 +36,97 @@ st.set_page_config(
 # Custom CSS for better styling
 st.markdown("""
 <style>
-    .main-header {
-        padding: 1rem 0;
-        border-bottom: 2px solid #f0f0f0;
-        margin-bottom: 2rem;
+    .main-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
     }
     
-    .chat-message {
-        padding: 1rem;
-        margin: 0.5rem 0;
-        border-radius: 8px;
-        border-left: 4px solid #007ACC;
-        background-color: #f8f9fa;
+    .header {
+        text-align: center;
+        padding: 20px 0;
+        margin-bottom: 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+    }
+    
+    .chat-container {
+        max-height: 400px;
+        overflow-y: auto;
+        padding: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        background-color: #fafafa;
+        margin-bottom: 20px;
     }
     
     .user-message {
         background-color: #e3f2fd;
-        border-left-color: #2196F3;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 15px 15px 5px 15px;
+        border-left: 4px solid #2196f3;
     }
     
     .assistant-message {
         background-color: #f1f8e9;
-        border-left-color: #4CAF50;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 15px 15px 15px 5px;
+        border-left: 4px solid #4caf50;
     }
     
-    .citation {
-        background-color: #fff3e0;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        font-size: 0.8rem;
-        margin: 0.25rem 0;
+    .status-indicator {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+        margin: 5px 0;
     }
     
-    .stats-box {
-        background-color: #f5f5f5;
-        padding: 1rem;
+    .status-success { background-color: #d4edda; color: #155724; }
+    .status-warning { background-color: #fff3cd; color: #856404; }
+    .status-info { background-color: #d1ecf1; color: #0c5460; }
+    
+    .input-section {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .stTextArea > div > div > textarea {
+        border-radius: 10px;
+        border: 2px solid #e0e0e0;
+    }
+    
+    .stButton > button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 30px;
+        font-weight: bold;
+        width: 100%;
+        margin-top: 10px;
+    }
+    
+    .sources-section {
+        background-color: #f8f9fa;
+        padding: 15px;
         border-radius: 8px;
-        margin: 0.5rem 0;
+        margin-top: 10px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .source-item {
+        background-color: white;
+        padding: 10px;
+        margin: 5px 0;
+        border-radius: 5px;
+        border-left: 3px solid #6c757d;
+        font-size: 0.9em;
     }
 </style>
 """, unsafe_allow_html=True)
