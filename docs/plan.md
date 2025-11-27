@@ -512,7 +512,8 @@ Even if this is not perfect, it’s an impressive second module.
 
 This feature is easy and clean.
 
-
+---
+Things to keep in mind
 ---
 
 # ✔ All three features are now documented in detailed Markdown files.
