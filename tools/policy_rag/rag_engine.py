@@ -54,6 +54,7 @@ class RAGEngine:
         self.max_tokens = max_tokens
         self.temperature = temperature
         self.provider = provider or os.getenv('LLM_PROVIDER', 'auto')
+        self.low_latency = False
         
         # Initialize clients
         self.openai_client = None
@@ -107,6 +108,18 @@ class RAGEngine:
             logger.info(f"Active LLM provider: {self.active_provider}")
         else:
             logger.warning("No LLM provider available. Running in fallback mode.")
+
+    def set_provider(self, provider: str):
+        """Update the preferred provider and reselect active provider."""
+        provider = (provider or "").lower()
+        if provider not in ("openai", "gemini", "auto"):
+            raise ValueError("provider must be 'openai', 'gemini', or 'auto'")
+        self.provider = provider
+        self._select_active_provider()
+
+    def set_low_latency(self, enabled: bool):
+        """Toggle low-latency mode for faster responses."""
+        self.low_latency = bool(enabled)
     
     def get_active_model(self) -> str:
         """Get the currently active model name."""
@@ -121,7 +134,8 @@ class RAGEngine:
         self, 
         user_question: str, 
         retrieved_chunks: List[Dict[str, Any]],
-        conversation_history: Optional[List[Dict[str, str]]] = None
+        conversation_history: Optional[List[Dict[str, str]]] = None,
+        conversation_summary: Optional[str] = None
     ) -> str:
         """
         Create a RAG prompt with retrieved context and user question.
@@ -172,14 +186,19 @@ Your responses should be:
         
         context = "\n".join(context_sections)
         
-        # Add conversation history if provided
+        # Add conversation summary and recent history if provided
         history_text = ""
+        history_sections: List[str] = []
+        if conversation_summary:
+            history_sections.append("=== CONVERSATION SUMMARY ===")
+            history_sections.append(conversation_summary.strip())
         if conversation_history:
-            history_sections = ["=== CONVERSATION HISTORY ==="]
-            for turn in conversation_history[-3:]:  # Last 3 turns
+            history_sections.append("=== RECENT TURNS ===")
+            for turn in conversation_history[-2:]:  # Last 2 turns for recency
                 role = turn.get('role', 'unknown')
                 content = turn.get('content', '')
                 history_sections.append(f"{role.upper()}: {content}")
+        if history_sections:
             history_text = "\n".join(history_sections) + "\n\n"
         
         # Combine into final prompt
@@ -300,7 +319,9 @@ Please provide a helpful answer based on the policy documents above. Remember to
         self, 
         user_question: str, 
         retrieved_chunks: List[Dict[str, Any]],
-        conversation_history: Optional[List[Dict[str, str]]] = None
+        conversation_history: Optional[List[Dict[str, str]]] = None,
+        conversation_summary: Optional[str] = None,
+        low_latency: Optional[bool] = None
     ) -> Dict[str, Any]:
         """
         Generate a response using RAG with multi-provider LLM support.
@@ -316,11 +337,43 @@ Please provide a helpful answer based on the policy documents above. Remember to
         logger.info(f"Generating RAG response for: '{user_question[:50]}...' using {self.active_provider or 'fallback'}")
         
         # Create prompt
-        prompt = self.create_rag_prompt(user_question, retrieved_chunks, conversation_history)
+        prompt = self.create_rag_prompt(
+            user_question, retrieved_chunks, conversation_history, conversation_summary
+        )
         
         # Try LLM providers
         if self.active_provider:
-            llm_result = self._try_llm_response(prompt)
+            # In low-latency mode, prefer faster/cheaper models and fewer tokens
+            use_low_latency = self.low_latency if low_latency is None else bool(low_latency)
+            original_openai_model = getattr(self, 'openai_model', None)
+            original_gemini_model = getattr(self, 'gemini_model', None)
+            original_max_tokens = self.max_tokens
+            original_temperature = self.temperature
+
+            try:
+                if use_low_latency:
+                    self.max_tokens = min(self.max_tokens, int(os.getenv('LOW_LATENCY_MAX_TOKENS', '350')))
+                    self.temperature = float(os.getenv('LOW_LATENCY_TEMPERATURE', '0.0'))
+                    # Swap to fast models if available
+                    if self.active_provider == 'openai' and original_openai_model is not None:
+                        fast_om = os.getenv('FAST_OPENAI_MODEL')
+                        if fast_om:
+                            self.openai_model = fast_om
+                    if self.active_provider == 'gemini' and original_gemini_model is not None:
+                        fast_gm = os.getenv('FAST_GEMINI_MODEL', 'gemini-1.5-flash')
+                        # Only override if model exists setting
+                        if fast_gm:
+                            self.gemini_model = fast_gm
+
+                llm_result = self._try_llm_response(prompt)
+            finally:
+                # Restore settings
+                self.max_tokens = original_max_tokens
+                self.temperature = original_temperature
+                if original_openai_model is not None:
+                    self.openai_model = original_openai_model
+                if original_gemini_model is not None:
+                    self.gemini_model = original_gemini_model
             
             if llm_result["success"]:
                 # LLM response successful
@@ -342,7 +395,7 @@ Please provide a helpful answer based on the policy documents above. Remember to
             else:
                 logger.warning(f"LLM providers failed: {llm_result.get('error', 'Unknown error')}")
         
-        # Fallback mode - use retrieved chunks only
+            # Fallback mode - use retrieved chunks only
         fallback_response = self.generate_fallback_response(user_question, retrieved_chunks)
         
         return {
@@ -486,8 +539,25 @@ class ConversationManager:
             max_history: Maximum number of conversation turns to remember
         """
         self.conversations = {}  # user_id -> conversation history
+        self._cache = None
         self.max_history = max_history
         logger.info("Conversation Manager initialized")
+
+    def _get_cache(self):
+        """Lazy-load Redis cache or fallback in-memory cache."""
+        if self._cache is None:
+            try:
+                from tools.cache.redis_cache import get_cache
+                self._cache = get_cache()
+            except Exception as e:
+                logger.warning(f"Cache unavailable, using in-memory fallback: {e}")
+                class _Dummy:
+                    def get_json(self, *a, **k): return None
+                    def set_json(self, *a, **k): return None
+                    def set_json_ttl(self, *a, **k): return None
+                    def delete(self, *a, **k): return None
+                self._cache = _Dummy()
+        return self._cache
     
     def add_turn(self, user_id: str, role: str, content: str):
         """
@@ -528,6 +598,54 @@ class ConversationManager:
         if user_id in self.conversations:
             del self.conversations[user_id]
             logger.info(f"Cleared conversation history for user {user_id}")
+        # also clear cached summary
+        cache = self._get_cache()
+        try:
+            cache.delete(f"conv:summary:{user_id}")
+        except Exception:
+            pass
+
+    def summarize_history(self, user_id: str, max_chars: int = 600) -> Optional[str]:
+        """Create a lightweight summary of the conversation without LLM calls."""
+        history = self.get_history(user_id)
+        if not history:
+            return None
+        # Take last ~8 turns for context and compress
+        turns = history[-8:]
+        parts: List[str] = []
+        for t in turns:
+            role = t.get('role', 'user')
+            content = (t.get('content', '') or '').strip().replace('\n', ' ')
+            if not content:
+                continue
+            prefix = 'Q' if role == 'user' else 'A'
+            parts.append(f"{prefix}: {content}")
+        s = " \n".join(parts)
+        if len(s) > max_chars:
+            s = s[:max_chars - 3] + "..."
+        return s
+
+    def get_or_update_summary(self, user_id: str, ttl_seconds: int = 1800) -> Optional[str]:
+        """Fetch cached summary or compute and cache it for a session."""
+        cache = self._get_cache()
+        key = f"conv:summary:{user_id}"
+        try:
+            cached = cache.get_json(key)
+            if cached and isinstance(cached, dict) and cached.get('summary'):
+                return cached['summary']
+        except Exception:
+            pass
+
+        summary = self.summarize_history(user_id)
+        if summary:
+            try:
+                cache.set_json_ttl(key, {"summary": summary, "ts": datetime.now().isoformat()}, ttl_seconds)
+            except Exception:
+                try:
+                    cache.set_json(key, {"summary": summary, "ts": datetime.now().isoformat()})
+                except Exception:
+                    pass
+        return summary
 
 
 # Example usage and testing
