@@ -33,101 +33,94 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for better styling
+# Custom CSS for minimalist black/white theme (Groq-like)
 st.markdown("""
 <style>
-    .main-container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
+    :root {
+        --bg: #0b0b0b;
+        --panel: #121212;
+        --text: #f5f5f5;
+        --muted: #bdbdbd;
+        --border: #1f1f1f;
+        --accent: #ffffff;
     }
-    
+
+    html, body, .main, .block-container { background-color: var(--bg) !important; }
+    .block-container { max-width: 860px; padding-top: 24px; }
+
+    * { color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+
     .header {
-        text-align: center;
-        padding: 20px 0;
-        margin-bottom: 30px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 10px;
+        text-align: left;
+        padding: 8px 0 20px 0;
+        margin-bottom: 12px;
     }
-    
-    .chat-container {
-        max-height: 400px;
-        overflow-y: auto;
-        padding: 20px;
-        border: 1px solid #e0e0e0;
-        border-radius: 10px;
-        background-color: #fafafa;
-        margin-bottom: 20px;
-    }
-    
-    .user-message {
-        background-color: #e3f2fd;
-        padding: 15px;
-        margin: 10px 0;
-        border-radius: 15px 15px 5px 15px;
-        border-left: 4px solid #2196f3;
-    }
-    
-    .assistant-message {
-        background-color: #f1f8e9;
-        padding: 15px;
-        margin: 10px 0;
-        border-radius: 15px 15px 15px 5px;
-        border-left: 4px solid #4caf50;
-    }
-    
-    .status-indicator {
-        display: inline-block;
-        padding: 5px 10px;
-        border-radius: 15px;
+    .header h1 { font-size: 24px; font-weight: 600; margin: 0; color: var(--text); }
+    .header p { margin: 6px 0 0 0; color: var(--muted); font-size: 14px; }
+
+    .status-row { display: flex; gap: 8px; margin: 8px 0 16px 0; }
+    .badge {
+        border: 1px solid var(--border);
+        color: var(--muted);
+        padding: 6px 10px;
+        border-radius: 999px;
         font-size: 12px;
-        margin: 5px 0;
+        background: var(--panel);
     }
-    
-    .status-success { background-color: #d4edda; color: #155724; }
-    .status-warning { background-color: #fff3cd; color: #856404; }
-    .status-info { background-color: #d1ecf1; color: #0c5460; }
-    
+
+    .chat-container {
+        max-height: 52vh;
+        overflow-y: auto;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background-color: var(--panel);
+        margin-bottom: 12px;
+    }
+
+    .user-message, .assistant-message {
+        padding: 12px 14px;
+        margin: 10px 0;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: transparent;
+    }
+    .user-message strong, .assistant-message strong { color: var(--muted); font-weight: 500; }
+
     .input-section {
-        background-color: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        background: var(--panel);
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
     }
-    
+
     .stTextArea > div > div > textarea {
-        border-radius: 10px;
-        border: 2px solid #e0e0e0;
+        background: transparent !important;
+        color: var(--text) !important;
+        border-radius: 10px !important;
+        border: 1px solid var(--border) !important;
     }
-    
+
     .stButton > button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        border-radius: 10px;
-        padding: 12px 30px;
-        font-weight: bold;
-        width: 100%;
-        margin-top: 10px;
+        background: var(--accent) !important;
+        color: #000 !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 8px !important;
+        padding: 10px 16px !important;
+        font-weight: 600 !important;
+        width: 100% !important;
+        margin-top: 10px !important;
     }
-    
-    .sources-section {
-        background-color: #f8f9fa;
-        padding: 15px;
-        border-radius: 8px;
-        margin-top: 10px;
-        border: 1px solid #e9ecef;
-    }
-    
+
     .source-item {
-        background-color: white;
+        background: transparent;
+        border: 1px dashed var(--border);
+        border-radius: 8px;
         padding: 10px;
-        margin: 5px 0;
-        border-radius: 5px;
-        border-left: 3px solid #6c757d;
-        font-size: 0.9em;
+        color: var(--muted);
     }
+
+    .footer { color: var(--muted); font-size: 12px; text-align: center; padding: 12px 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -210,32 +203,29 @@ def main():
     st.markdown("""
     <div class="header">
         <h1>HR Assistant</h1>
-        <p>Get instant answers about company policies and procedures</p>
+        <p>Minimalist chat for company policies and HR help</p>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Simple status indicators
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown('<span class="status-indicator status-success">✓ Ready</span>', unsafe_allow_html=True)
-    with col2:
-        try:
-            stats = components["policy_tool"].get_database_stats()
-            if stats and not stats.get("error"):
-                doc_count = stats.get('unique_documents', 0)
-                st.markdown(f'<span class="status-indicator status-info">{doc_count} Documents</span>', unsafe_allow_html=True)
-            else:
-                st.markdown('<span class="status-indicator status-warning">No Data</span>', unsafe_allow_html=True)
-        except:
-            st.markdown('<span class="status-indicator status-warning">Loading...</span>', unsafe_allow_html=True)
-    with col3:
-        # Check AI provider
-        rag_engine = components["rag_engine"]
-        active_provider = getattr(rag_engine, 'active_provider', None)
-        if active_provider:
-            st.markdown('<span class="status-indicator status-success">🤖 AI Ready</span>', unsafe_allow_html=True)
-        else:
-            st.markdown('<span class="status-indicator status-info">💡 Basic Mode</span>', unsafe_allow_html=True)
+
+    # Minimal status badges
+    stats = None
+    try:
+        stats = components["policy_tool"].get_database_stats()
+    except Exception:
+        pass
+    rag_engine = components["rag_engine"]
+    active_provider = getattr(rag_engine, 'active_provider', None)
+
+    st.markdown("""
+    <div class="status-row">
+        <span class="badge">Ready</span>
+        <span class="badge">%s Documents</span>
+        <span class="badge">%s</span>
+    </div>
+    """ % (
+        (stats.get('unique_documents', 0) if stats else 0),
+        ("AI Ready" if active_provider else "Basic Mode")
+    ), unsafe_allow_html=True)
     
     # Simplified sidebar
     with st.sidebar:
