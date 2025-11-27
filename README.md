@@ -3,103 +3,78 @@ Okay, this is an incredibly detailed and well-thought-out platform design\! It's
 Based on your comprehensive description, here's an architecture image that visualizes your proposed AI Agent Platform. I've focused on clarity, modularity, and highlighting the shared infrastructure as well as the distinct feature pipelines.
 
 ```mermaid
-graph TD
-    subgraph CI["Core Infrastructure"]
-        A[Data Ingestion / ETL] --- B[Object Storage - Raw Docs]
-        A --- C[SQL DB - Metadata]
-        C --- D[Embedding Service - Cached, Versioned]
-        D --- E[Vector DB - Chroma/Pinecone/Milvus]
-        E --- F[LLM Provider - OpenAI/Private LLMs]
-        F --- G[Auth & Permissions - SSO/RBAC]
-        G --- H[Audit & Logging]
-    end
+flowchart LR
+  subgraph UI
+    ChatUI[Employee Chat UI<br/>(Slack/MS Teams/Web)]
+    RecruiterUI[Recruiter Dashboard<br/>(React)]
+    AdminUI[HR Admin Console]
+  end
 
-    subgraph HRA["HR Assistant Agent (RAG)"]
-        HRA_UI[Employee Chat UI - Slack/Teams/Web]
-        HRA_Ret[Retriever / RAG Orchestrator]
-        HRA_Logic[HR Assistant Business Logic]
-        HRA_Admin[HR Admin Portal]
-        HRA_Safety[Safety & Legal Filters]
+  subgraph MCP_Server["MCP Server / Orchestrator"]
+    Manifest[Manifest + Tool Registry]
+    Router[Call Router & Auth]
+    Audit[Audit Logger]
+  end
 
-        HRA_UI --- HRA_Ret
-        HRA_Ret --- HRA_Logic
-        HRA_Logic --- HRA_UI
-        HRA_Logic --- HRA_Admin
-        HRA_Logic --- HRA_Safety
-    end
+  subgraph Tools["MCP Tools (microservices)"]
+    PolicyTool[policy_search_tool<br/>(vector DB + retrieval)]
+    ResumeTool[resume_screening_tool<br/>(ingest, embeddings, ranker)]
+    OnboardTool[onboarding_tool<br/>(workflows + state)]
+    Authz[authz_service<br/>(SSO/RBAC)]
+    Storage[object_store<br/>(documents, resumes)]
+    VectorDB[Vector DB<br/>(Chroma/Pinecone/Milvus)]
+    SQL[Postgres<br/>(metadata)]
+    LLMService[LLM Adapter<br/>(OpenAI / private)]
+    TaskQueue[Job Queue<br/>(Celery/Prefect)]
+    IT_System[IT / HRIS / Ticketing<br/>(SAP/Workday/JIRA)]
+  end
 
-    subgraph RSA["Resume Screening Agent"]
-        RS_UI[Recruiter Dashboard]
-        RS_Score[Resume Scoring Logic]
-        RS_Bias[Bias Checks]
-        RS_Admin[HR Admin Portal]
+  ChatUI -->|user queries| MCP_Server
+  RecruiterUI -->|requests ranking| MCP_Server
+  AdminUI -->|upload docs| MCP_Server
 
-        RS_UI --- RS_Score
-        RS_Score --- RS_Bias
-        RS_Score --- RS_Admin
-    end
+  MCP_Server --> Router
+  Router --> PolicyTool
+  Router --> ResumeTool
+  Router --> OnboardTool
+  Router --> Authz
+  Router --> Audit
 
-    subgraph EOA["Employee Onboarding Agent"]
-        EO_UI[New Hire Chat UI - Web/Email]
-        EO_Workflow[Workflow Engine]
-        EO_Integrations[IT/HR Integrations]
-        EO_Admin[HR Admin Portal]
+  PolicyTool --> VectorDB
+  PolicyTool --> Storage
+  ResumeTool --> VectorDB
+  ResumeTool --> Storage
+  ResumeTool --> SQL
+  OnboardTool --> SQL
+  OnboardTool --> IT_System
+  PolicyTool --> LLMService
+  ResumeTool --> LLMService
+  OnboardTool --> LLMService
 
-        EO_UI --- EO_Workflow
-        EO_Workflow --- EO_Integrations
-        EO_Integrations --- EO_Admin
-    end
+  TaskQueue -->|background tasks| VectorDB
+  TaskQueue --> Storage
+  Authz --> SQL
+  Audit --> SQL
 
-    %% Core Infrastructure Connections
-    B -.-> A
+  %% Styling with black text
+  style ChatUI fill:#A9DFBF,stroke:#27AE60,stroke-width:2px,color:#000000
+  style RecruiterUI fill:#F9E79F,stroke:#F4D03F,stroke-width:2px,color:#000000
+  style AdminUI fill:#FADBD8,stroke:#C0392B,stroke-width:2px,color:#000000
 
-    %% HR Assistant Agent Connections
-    HRA_Ret -.-> D
-    HRA_Ret -.-> E
-    HRA_Ret -.-> F
-    HRA_Safety -.-> H
-    HRA_Admin -.-> G
+  style Manifest fill:#D6EAF8,stroke:#2E86C1,stroke-width:2px,color:#000000
+  style Router fill:#E8F8F5,stroke:#28B463,stroke-width:2px,color:#000000
+  style Audit fill:#EAF2F8,stroke:#5D6D7E,stroke-width:2px,color:#000000
 
-    %% Resume Screening Agent Connections
-    B -.-> RS_Score
-    RS_Score -.-> D
-    RS_Score -.-> E
-    RS_Score -.-> F
-    RS_Bias -.-> H
-    RS_Admin -.-> G
-
-    %% Employee Onboarding Agent Connections
-    EO_Workflow -.-> F
-    EO_Workflow -.-> HRA_Ret
-    EO_Workflow -.-> C
-    EO_Workflow -.-> H
-    EO_Admin -.-> G
-
-    %% Styling
-    style A fill:#D6EAF8,stroke:#2E86C1,stroke-width:2px,color:#000000
-    style B fill:#F5EEF8,stroke:#9B59B6,stroke-width:2px,color:#000000
-    style C fill:#E8F8F5,stroke:#28B463,stroke-width:2px,color:#000000
-    style D fill:#FCF3CF,stroke:#F4D03F,stroke-width:2px,color:#000000
-    style E fill:#D5F5E3,stroke:#2ECC71,stroke-width:2px,color:#000000
-    style F fill:#FADBD8,stroke:#E74C3C,stroke-width:2px,color:#000000
-    style G fill:#EBDEF0,stroke:#AF7AC5,stroke-width:2px,color:#000000
-    style H fill:#EAF2F8,stroke:#5D6D7E,stroke-width:2px,color:#000000
-
-    style HRA_UI fill:#A9DFBF,stroke:#27AE60,stroke-width:2px,color:#000000
-    style HRA_Ret fill:#D4EFDF,stroke:#2ECC71,stroke-width:2px,color:#000000
-    style HRA_Logic fill:#E8F6F3,stroke:#1ABC9C,stroke-width:2px,color:#000000
-    style HRA_Admin fill:#FADBD8,stroke:#C0392B,stroke-width:2px,color:#000000
-    style HRA_Safety fill:#F5B7B1,stroke:#E74C3C,stroke-width:2px,color:#000000
-
-    style RS_UI fill:#F9E79F,stroke:#F4D03F,stroke-width:2px,color:#000000
-    style RS_Score fill:#FCF3CF,stroke:#F1C40F,stroke-width:2px,color:#000000
-    style RS_Bias fill:#FAD7A0,stroke:#E67E22,stroke-width:2px,color:#000000
-    style RS_Admin fill:#FADBD8,stroke:#C0392B,stroke-width:2px,color:#000000
-
-    style EO_UI fill:#D6DBDF,stroke:#7F8C8D,stroke-width:2px,color:#000000
-    style EO_Workflow fill:#EBF5FB,stroke:#3498DB,stroke-width:2px,color:#000000
-    style EO_Integrations fill:#DDEBF1,stroke:#5DADE2,stroke-width:2px,color:#000000
-    style EO_Admin fill:#FADBD8,stroke:#C0392B,stroke-width:2px,color:#000000
+  style PolicyTool fill:#D4EFDF,stroke:#2ECC71,stroke-width:2px,color:#000000
+  style ResumeTool fill:#FCF3CF,stroke:#F1C40F,stroke-width:2px,color:#000000
+  style OnboardTool fill:#EBF5FB,stroke:#3498DB,stroke-width:2px,color:#000000
+  style Authz fill:#EBDEF0,stroke:#AF7AC5,stroke-width:2px,color:#000000
+  style Storage fill:#F5EEF8,stroke:#9B59B6,stroke-width:2px,color:#000000
+  style VectorDB fill:#D5F5E3,stroke:#2ECC71,stroke-width:2px,color:#000000
+  style SQL fill:#E8F8F5,stroke:#28B463,stroke-width:2px,color:#000000
+  style LLMService fill:#FADBD8,stroke:#E74C3C,stroke-width:2px,color:#000000
+  style TaskQueue fill:#FCF3CF,stroke:#F4D03F,stroke-width:2px,color:#000000
+  style IT_System fill:#DDEBF1,stroke:#5DADE2,stroke-width:2px,color:#000000
 ```
 
 **Explanation of the Architecture:**
