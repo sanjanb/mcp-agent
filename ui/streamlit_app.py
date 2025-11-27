@@ -299,9 +299,10 @@ def main():
     if "user_id" not in st.session_state:
         st.session_state.user_id = f"user_{int(time.time())}"
     
-    # Display conversation history
+    # Chat conversation display
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    
     if st.session_state.messages:
-        st.subheader("Conversation")
         for message in st.session_state.messages:
             display_message(
                 message["role"], 
@@ -309,91 +310,91 @@ def main():
                 message.get("metadata")
             )
     else:
-        st.info("Welcome! Ask me any HR-related question to get started.")
+        st.markdown("""
+        <div style="text-align: center; padding: 40px; color: #666;">
+            <h3>👋 Welcome to HR Assistant!</h3>
+            <p>Ask me about company policies, benefits, vacation time, or any HR-related question.</p>
+            <p><strong>Try asking:</strong><br>
+            • "How many vacation days do I get?"<br>
+            • "What's the remote work policy?"<br>
+            • "How do I submit a time off request?"</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    # Chat input
-    st.subheader("Ask a Question")
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Simplified input section
+    st.markdown('<div class="input-section">', unsafe_allow_html=True)
     user_input = st.text_area(
-        "Your question:",
-        placeholder="e.g., How many vacation days do I get? What's the remote work policy?",
-        height=100,
-        key="user_input"
+        "Ask your question:",
+        placeholder="Type your HR question here...",
+        height=80,
+        key="user_input",
+        label_visibility="collapsed"
     )
     
-    col1, col2 = st.columns([1, 4])
-    with col1:
-        ask_button = st.button("Ask Question", type="primary")
-    
-    # Process user input
-    if ask_button and user_input.strip():
-        with st.spinner("Thinking..."):
-            try:
-                # Add user message to conversation
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": user_input
-                })
-                components["conv_manager"].add_turn(
-                    st.session_state.user_id, "user", user_input
-                )
-                
-                # Search for relevant policy chunks
-                search_result = components["policy_tool"].search_policies(
-                    user_input, top_k=max_results
-                )
-                
-                if show_debug:
-                    st.expander("Debug: Search Results").json(search_result)
-                
-                # Generate response using RAG
-                conversation_history = components["conv_manager"].get_history(
-                    st.session_state.user_id
-                )[:-1]  # Exclude the current question
-                
-                rag_response = components["rag_engine"].generate_response(
-                    user_input,
-                    search_result.get("chunks", []),
-                    conversation_history
-                )
-                
-                if show_debug:
-                    st.expander("Debug: RAG Response").json(rag_response)
-                
-                # Display and store response
-                if rag_response["success"]:
-                    response_text = rag_response["response"]
-                    
-                    # Add assistant response to conversation
+    if st.button("💬 Ask Question", type="primary", use_container_width=True):
+        if user_input.strip():
+            # Process the question
+            with st.spinner("🤔 Thinking..."):
+                try:
+                    # Add user message
                     st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": response_text,
-                        "metadata": rag_response
+                        "role": "user", 
+                        "content": user_input
                     })
                     components["conv_manager"].add_turn(
-                        st.session_state.user_id, "assistant", response_text
+                        st.session_state.user_id, "user", user_input
                     )
                     
-                else:
-                    error_message = f"I apologize, but I encountered an error: {rag_response.get('error', 'Unknown error')}"
+                    # Search and generate response
+                    search_result = components["policy_tool"].search_policies(
+                        user_input, top_k=max_results
+                    )
+                    
+                    conversation_history = components["conv_manager"].get_history(
+                        st.session_state.user_id
+                    )[:-1]
+                    
+                    rag_response = components["rag_engine"].generate_response(
+                        user_input,
+                        search_result.get("chunks", []),
+                        conversation_history
+                    )
+                    
+                    # Add response
+                    if rag_response["success"]:
+                        response_text = rag_response["response"]
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": response_text,
+                            "metadata": rag_response
+                        })
+                        components["conv_manager"].add_turn(
+                            st.session_state.user_id, "assistant", response_text
+                        )
+                    else:
+                        error_message = f"Sorry, I encountered an error: {rag_response.get('error', 'Unknown error')}"
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": error_message
+                        })
+                    
+                    # Clear input and refresh
+                    st.session_state.user_input = ""
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"Something went wrong: {e}")
                     st.session_state.messages.append({
                         "role": "assistant",
-                        "content": error_message
+                        "content": "I apologize, but I encountered a technical error. Please try again."
                     })
-                
-                # Clear input and rerun to show new messages
-                st.session_state.user_input = ""
-                st.rerun()
-                
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": "I apologize, but I encountered a technical error. Please try again or contact HR directly."
-                })
-                st.rerun()
+                    st.rerun()
+        else:
+            st.warning("Please enter a question first.")
     
-    elif ask_button and not user_input.strip():
-        st.warning("Please enter a question before clicking 'Ask Question'.")
+    st.markdown('</div>', unsafe_allow_html=True)
     
     # Footer
     st.markdown("---")
