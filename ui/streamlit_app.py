@@ -379,8 +379,7 @@ def main():
                             "content": error_message
                         })
                     
-                    # Clear input and refresh
-                    st.session_state.user_input = ""
+                    # Refresh to show new messages
                     st.rerun()
                     
                 except Exception as e:

@@ -234,16 +234,21 @@ def setup_vector_database():
         processor = DocumentProcessor(chunk_size=500, chunk_overlap=50)
         vector_db = VectorDatabase()
         
+        # Check if database already has documents
+        stats = vector_db.get_collection_stats()
+        existing_chunks = stats.get("total_chunks", 0)
+        
+        if existing_chunks > 0:
+            logger.info(f"Database already contains {existing_chunks} chunks. Skipping document processing.")
+            logger.info(f"Database stats: {stats}")
+            return True
+        
         # Process HR documents
         hr_docs_path = project_root / "data" / "hr_documents"
         
         if not hr_docs_path.exists():
             logger.warning("HR documents directory not found. Creating sample documents...")
             create_sample_hr_documents()
-        
-        # Clear existing database
-        logger.info("Clearing existing database...")
-        vector_db.clear_collection()
         
         # Process and add documents
         logger.info("Processing documents...")
