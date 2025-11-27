@@ -320,8 +320,6 @@ def main():
         st.session_state.user_id = f"user_{int(time.time())}"
     
     # Chat conversation display
-    st.markdown('<div class="chat-container" id="chat">', unsafe_allow_html=True)
-    
     if st.session_state.messages:
         for message in st.session_state.messages:
             display_message(
@@ -330,18 +328,19 @@ def main():
                 message.get("metadata")
             )
     else:
+        # Render welcome inside the styled container in a single block
         st.markdown("""
-        <div style="text-align: center; padding: 40px; color: #666;">
-            <h3>Welcome to HR Assistant</h3>
-            <p>Ask me about company policies, benefits, vacation time, or any HR-related question.</p>
-            <p><strong>Try asking:</strong><br>
-            - "How many vacation days do I get?"<br>
-            - "What's the remote work policy?"<br>
-            - "How do I submit a time off request?"</p>
+        <div class="chat-container" id="chat">
+            <div style="text-align: center; padding: 40px; color: #bdbdbd;">
+                <h3 style="margin-top:0; color:#f5f5f5;">Welcome to HR Assistant</h3>
+                <p>Ask me about company policies, benefits, vacation time, or any HR-related question.</p>
+                <p><strong>Try asking:</strong><br>
+                - "How many vacation days do I get?"<br>
+                - "What's the remote work policy?"<br>
+                - "How do I submit a time off request?"</p>
+            </div>
         </div>
         """, unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
     
     # Input section (sticky bottom)
     st.markdown('<div class="input-section" role="form" aria-label="Ask a question">', unsafe_allow_html=True)
