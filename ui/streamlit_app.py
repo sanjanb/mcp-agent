@@ -200,6 +200,12 @@ def display_message(role, content, metadata=None):
 def main():
     """Main application function."""
     
+    # Initialize components first
+    components = initialize_components()
+    if not components:
+        st.error("System initialization failed. Please check the logs and try again.")
+        return
+    
     # Header section
     st.markdown("""
     <div class="header">
@@ -230,12 +236,6 @@ def main():
             st.markdown('<span class="status-indicator status-success">🤖 AI Ready</span>', unsafe_allow_html=True)
         else:
             st.markdown('<span class="status-indicator status-info">💡 Basic Mode</span>', unsafe_allow_html=True)
-    
-    # Initialize components
-    components = initialize_components()
-    if not components:
-        st.error("System initialization failed. Please check the logs and try again.")
-        return
     
     # Simplified sidebar
     with st.sidebar:
