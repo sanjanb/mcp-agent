@@ -54,7 +54,6 @@ desktop.ini
 # Logs
 *.log
 logs/
-docs/
 
 # Database files
 *.db
