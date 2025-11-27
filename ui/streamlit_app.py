@@ -201,13 +201,36 @@ def display_message(role, content, metadata=None):
 def main():
     """Main application function."""
     
-    # Header
+    # Header section
     st.markdown("""
-    <div class="main-header">
-        <h1>HR Assistant Agent</h1>
-        <p>Ask me anything about company policies, benefits, and HR procedures!</p>
+    <div class="header">
+        <h1>HR Assistant</h1>
+        <p>Get instant answers about company policies and procedures</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Simple status indicators
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown('<span class="status-indicator status-success">✓ Ready</span>', unsafe_allow_html=True)
+    with col2:
+        try:
+            stats = components["policy_tool"].get_database_stats()
+            if stats and not stats.get("error"):
+                doc_count = stats.get('unique_documents', 0)
+                st.markdown(f'<span class="status-indicator status-info">{doc_count} Documents</span>', unsafe_allow_html=True)
+            else:
+                st.markdown('<span class="status-indicator status-warning">No Data</span>', unsafe_allow_html=True)
+        except:
+            st.markdown('<span class="status-indicator status-warning">Loading...</span>', unsafe_allow_html=True)
+    with col3:
+        # Check AI provider
+        rag_engine = components["rag_engine"]
+        active_provider = getattr(rag_engine, 'active_provider', None)
+        if active_provider:
+            st.markdown('<span class="status-indicator status-success">🤖 AI Ready</span>', unsafe_allow_html=True)
+        else:
+            st.markdown('<span class="status-indicator status-info">💡 Basic Mode</span>', unsafe_allow_html=True)
     
     # Initialize components
     components = initialize_components()
@@ -215,116 +238,59 @@ def main():
         st.error("System initialization failed. Please check the logs and try again.")
         return
     
-    # Sidebar for system status and controls
+    # Simplified sidebar
     with st.sidebar:
-        st.header("System Status")
+        st.header("System Info")
         
         # Health check
         health = components["server"].health_check()
         if health.get("server_status") == "healthy":
-            st.success("System is healthy")
+            st.success("✅ System Healthy")
         else:
-            st.error("System issues detected")
+            st.error("❌ System Issues")
         
-        # Database stats
+        # Quick stats
         try:
             stats = components["policy_tool"].get_database_stats()
             if stats and not stats.get("error"):
-                st.markdown(f"""
-                <div class="stats-box">
-                    <h4>📊 Database Statistics</h4>
-                    <ul>
-                        <li>Total chunks: {stats.get('total_chunks', 0)}</li>
-                        <li>Documents: {stats.get('unique_documents', 0)}</li>
-                        <li>Collection: {stats.get('collection_name', 'Unknown')}</li>
-                    </ul>
-                </div>
-                """, unsafe_allow_html=True)
+                total_chunks = stats.get('total_chunks', 0)
+                unique_docs = stats.get('unique_documents', 0)
+                st.info(f"📚 {unique_docs} documents loaded\n📄 {total_chunks} searchable sections")
             else:
-                st.warning("Database statistics unavailable")
-        except Exception as e:
-            st.warning(f"Could not load database stats: {e}")
+                st.warning("No documents loaded")
+        except Exception:
+            st.warning("Database unavailable")
         
-        # AI Provider Status
-        st.markdown("### 🤖 AI Provider Status")
-        
-        # Get active provider info
+        # AI Status
         rag_engine = components["rag_engine"]
         active_provider = getattr(rag_engine, 'active_provider', None)
         
-        # Show active provider
         if active_provider:
-            if active_provider == "openai":
-                st.success(f"✅ Active: OpenAI ({rag_engine.get_active_model()})")
-            elif active_provider == "gemini":
-                st.success(f"✅ Active: Google Gemini ({rag_engine.get_active_model()})")
+            provider_name = active_provider.title()
+            st.success(f"🤖 AI: {provider_name}")
         else:
-            st.warning("⚠️ No AI provider available")
-            st.info("💡 **Fallback mode active** - The system will still provide helpful responses using document search, but without AI-generated summaries.")
-        
-        # Show detailed provider status
-        with st.expander("Provider Details", expanded=False):
-            # OpenAI status
-            openai_available = hasattr(rag_engine, 'openai_client') and rag_engine.openai_client is not None
-            if openai_available:
-                st.success("🟢 OpenAI: Available")
-            else:
-                st.error("🔴 OpenAI: Not available")
-            
-            # Gemini status  
-            gemini_available = hasattr(rag_engine, 'gemini_client') and rag_engine.gemini_client is not None
-            if gemini_available:
-                st.success("🟢 Gemini: Available")
-            else:
-                st.error("🔴 Gemini: Not available")
-            
-            # Provider preference
-            provider_preference = getattr(rag_engine, 'provider', 'auto')
-            st.info(f"Provider preference: **{provider_preference}**")
-        
-        # Setup instructions if no providers available
-        if not active_provider:
-            with st.expander("How to setup AI providers"):
+            st.info("💡 Basic search mode")
+            with st.expander("Need AI responses?"):
                 st.markdown("""
-                ### OpenAI Setup
-                1. Get an API key from https://platform.openai.com/account/api-keys
-                2. Set the environment variable:
-                   ```
-                   # Windows (PowerShell):
-                   $env:OPENAI_API_KEY = "your-openai-key-here"
-                   
-                   # Linux/Mac:
-                   export OPENAI_API_KEY="your-openai-key-here"
-                   ```
+                Add API keys to enable AI responses:
+                - OpenAI: Set `OPENAI_API_KEY`
+                - Gemini: Set `GEMINI_API_KEY`
                 
-                ### Google Gemini Setup
-                1. Get an API key from https://aistudio.google.com/app/apikey
-                2. Set the environment variable:
-                   ```
-                   # Windows (PowerShell):
-                   $env:GEMINI_API_KEY = "your-gemini-key-here"
-                   
-                   # Linux/Mac:
-                   export GEMINI_API_KEY="your-gemini-key-here"
-                   ```
-                
-                3. Restart the Streamlit app after setting any API key
+                Restart app after adding keys.
                 """)
-        else:
-            st.success("🚀 AI-powered responses enabled!")
         
-        # Controls
-        st.header("Controls")
-        if st.button("Clear Conversation"):
+        # Simple controls
+        st.markdown("---")
+        if st.button("🗑️ Clear Chat"):
             if "user_id" in st.session_state:
                 components["conv_manager"].clear_history(st.session_state.user_id)
             st.session_state.messages = []
             st.rerun()
         
         # Settings
-        st.header("Settings")
-        max_results = st.slider("Max search results", 1, 10, 5)
-        show_debug = st.checkbox("Show debug info", False)
+        with st.expander("⚙️ Settings"):
+            max_results = st.slider("Search results", 1, 10, 5)
+            show_debug = st.checkbox("Debug mode", False)
     
     # Initialize session state
     if "messages" not in st.session_state:
