@@ -4,58 +4,78 @@ Based on your comprehensive description, here's an architecture image that visua
 
 ```mermaid
 graph TD
-    subgraph Core Infrastructure
-        A[Data Ingestion / ETL] --- B[Object Storage (Raw Docs)]
-        A --- C[SQL DB (Metadata)]
-        C --- D[Embedding Service (Cached, Versioned)]
-        D --- E[Vector DB (Chroma/Pinecone/Milvus)]
-        E --- F[LLM Provider (OpenAI/Private LLMs)]
-        F --- G[Auth & Permissions (SSO/RBAC)]
+    subgraph CI["Core Infrastructure"]
+        A[Data Ingestion / ETL] --- B[Object Storage - Raw Docs]
+        A --- C[SQL DB - Metadata]
+        C --- D[Embedding Service - Cached, Versioned]
+        D --- E[Vector DB - Chroma/Pinecone/Milvus]
+        E --- F[LLM Provider - OpenAI/Private LLMs]
+        F --- G[Auth & Permissions - SSO/RBAC]
         G --- H[Audit & Logging]
     end
 
-    subgraph HR Assistant Agent (RAG)
-        HRA_UI[Employee Chat UI (Slack/Teams/Web)] --- HRA_Ret[Retriever / RAG Orchestrator]
-        B -- Policy Docs --> A
-        A -- Chunked & Indexed --> E
-        HRA_Ret -- Embed Query --> D
-        HRA_Ret -- Retrieve Chunks --> E
-        HRA_Ret -- Prompt LLM --> F
-        F -- Answer + Citations + Confidence --> HRA_Logic[HR Assistant Business Logic]
-        HRA_Logic -- Human-in-Loop / Escalation --> HRA_Admin[HR Admin Portal]
-        HRA_Logic -- PII/Medical Flagging --> HRA_Safety[Safety & Legal Filters]
+    subgraph HRA["HR Assistant Agent (RAG)"]
+        HRA_UI[Employee Chat UI - Slack/Teams/Web]
+        HRA_Ret[Retriever / RAG Orchestrator]
+        HRA_Logic[HR Assistant Business Logic]
+        HRA_Admin[HR Admin Portal]
+        HRA_Safety[Safety & Legal Filters]
+
+        HRA_UI --- HRA_Ret
+        HRA_Ret --- HRA_Logic
         HRA_Logic --- HRA_UI
-        HRA_Safety --- H
+        HRA_Logic --- HRA_Admin
+        HRA_Logic --- HRA_Safety
     end
 
-    subgraph Resume Screening Agent
-        RS_UI[Recruiter Dashboard] --- RS_Score[Resume Scoring Logic]
-        B -- Resumes / JDs --> A
-        A -- Parsed & Chunked --> E
-        RS_Score -- Embed JD/Chunks --> D
-        RS_Score -- Similarity & Rule Engine --> E
-        RS_Score -- Summarize Fit (LLM) --> F
-        RS_Score -- Bias Mitigation --> RS_Bias[Bias Checks]
-        RS_Score -- Human Feedback Loop --> RS_Admin[HR Admin Portal]
-        RS_Score --- RS_UI
-        RS_Bias --- H
+    subgraph RSA["Resume Screening Agent"]
+        RS_UI[Recruiter Dashboard]
+        RS_Score[Resume Scoring Logic]
+        RS_Bias[Bias Checks]
+        RS_Admin[HR Admin Portal]
+
+        RS_UI --- RS_Score
+        RS_Score --- RS_Bias
+        RS_Score --- RS_Admin
     end
 
-    subgraph Employee Onboarding Agent
-        EO_UI[New Hire Chat UI (Web/Email)] --- EO_Workflow[Workflow Engine]
-        EO_Workflow -- Conversational Flow (LLM) --> F
-        EO_Workflow -- RAG for Q&A --> HRA_Ret
-        EO_Workflow -- Task Assignment & State Tracking --> C
-        EO_Workflow -- Escalation / Ticketing --> EO_Integrations[IT/HR Integrations]
-        EO_Integrations --- EO_Admin[HR Admin Portal]
-        EO_Workflow --- EO_UI
-        EO_Workflow --- H
+    subgraph EOA["Employee Onboarding Agent"]
+        EO_UI[New Hire Chat UI - Web/Email]
+        EO_Workflow[Workflow Engine]
+        EO_Integrations[IT/HR Integrations]
+        EO_Admin[HR Admin Portal]
+
+        EO_UI --- EO_Workflow
+        EO_Workflow --- EO_Integrations
+        EO_Integrations --- EO_Admin
     end
 
-    HRA_Admin --- G
-    RS_Admin --- G
-    EO_Admin --- G
+    %% Core Infrastructure Connections
+    B -.-> A
 
+    %% HR Assistant Agent Connections
+    HRA_Ret -.-> D
+    HRA_Ret -.-> E
+    HRA_Ret -.-> F
+    HRA_Safety -.-> H
+    HRA_Admin -.-> G
+
+    %% Resume Screening Agent Connections
+    B -.-> RS_Score
+    RS_Score -.-> D
+    RS_Score -.-> E
+    RS_Score -.-> F
+    RS_Bias -.-> H
+    RS_Admin -.-> G
+
+    %% Employee Onboarding Agent Connections
+    EO_Workflow -.-> F
+    EO_Workflow -.-> HRA_Ret
+    EO_Workflow -.-> C
+    EO_Workflow -.-> H
+    EO_Admin -.-> G
+
+    %% Styling
     style A fill:#D6EAF8,stroke:#2E86C1,stroke-width:2px
     style B fill:#F5EEF8,stroke:#9B59B6,stroke-width:2px
     style C fill:#E8F8F5,stroke:#28B463,stroke-width:2px
@@ -80,7 +100,6 @@ graph TD
     style EO_Workflow fill:#EBF5FB,stroke:#3498DB,stroke-width:2px
     style EO_Integrations fill:#DDEBF1,stroke:#5DADE2,stroke-width:2px
     style EO_Admin fill:#FADBD8,stroke:#C0392B,stroke-width:2px
-
 ```
 
 **Explanation of the Architecture:**
