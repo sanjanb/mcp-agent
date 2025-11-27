@@ -117,9 +117,14 @@ def display_message(role, content, metadata=None):
         
         # Display metadata for assistant responses
         if role == "assistant" and metadata:
-            # Show mode if in fallback
+            # Show mode information
             if metadata.get("mode") == "fallback":
-                st.info("🔧 **Fallback Mode**: This response was generated using document search only (OpenAI API unavailable)")
+                st.info("🔧 **Fallback Mode**: This response was generated using document search only (No AI providers available)")
+            elif metadata.get("provider"):
+                provider_name = metadata.get("provider", "unknown")
+                model_name = metadata.get("model", "unknown")
+                if provider_name in ["openai", "gemini"]:
+                    st.success(f"✨ **AI Response**: Generated using {provider_name.title()} ({model_name})")
             
             if metadata.get("chunks_details"):
                 with st.expander("📚 Sources and Citations"):
@@ -186,26 +191,73 @@ def main():
         except Exception as e:
             st.warning(f"Could not load database stats: {e}")
         
-        # OpenAI API status
-        st.markdown("### 🤖 AI Status")
-        if components["rag_engine"].client:
-            st.success("✅ OpenAI API connected")
+        # AI Provider Status
+        st.markdown("### 🤖 AI Provider Status")
+        
+        # Get active provider info
+        rag_engine = components["rag_engine"]
+        active_provider = getattr(rag_engine, 'active_provider', None)
+        
+        # Show active provider
+        if active_provider:
+            if active_provider == "openai":
+                st.success(f"✅ Active: OpenAI ({rag_engine.get_active_model()})")
+            elif active_provider == "gemini":
+                st.success(f"✅ Active: Google Gemini ({rag_engine.get_active_model()})")
         else:
-            st.warning("⚠️ OpenAI API not available")
+            st.warning("⚠️ No AI provider available")
             st.info("💡 **Fallback mode active** - The system will still provide helpful responses using document search, but without AI-generated summaries.")
-            with st.expander("How to fix OpenAI connection"):
+        
+        # Show detailed provider status
+        with st.expander("Provider Details", expanded=False):
+            # OpenAI status
+            openai_available = hasattr(rag_engine, 'openai_client') and rag_engine.openai_client is not None
+            if openai_available:
+                st.success("🟢 OpenAI: Available")
+            else:
+                st.error("🔴 OpenAI: Not available")
+            
+            # Gemini status  
+            gemini_available = hasattr(rag_engine, 'gemini_client') and rag_engine.gemini_client is not None
+            if gemini_available:
+                st.success("🟢 Gemini: Available")
+            else:
+                st.error("🔴 Gemini: Not available")
+            
+            # Provider preference
+            provider_preference = getattr(rag_engine, 'provider', 'auto')
+            st.info(f"Provider preference: **{provider_preference}**")
+        
+        # Setup instructions if no providers available
+        if not active_provider:
+            with st.expander("How to setup AI providers"):
                 st.markdown("""
-                1. Get a valid OpenAI API key from https://platform.openai.com/account/api-keys
+                ### OpenAI Setup
+                1. Get an API key from https://platform.openai.com/account/api-keys
                 2. Set the environment variable:
                    ```
                    # Windows (PowerShell):
-                   $env:OPENAI_API_KEY = "your-api-key-here"
+                   $env:OPENAI_API_KEY = "your-openai-key-here"
                    
                    # Linux/Mac:
-                   export OPENAI_API_KEY="your-api-key-here"
+                   export OPENAI_API_KEY="your-openai-key-here"
                    ```
-                3. Restart the Streamlit app
+                
+                ### Google Gemini Setup
+                1. Get an API key from https://aistudio.google.com/app/apikey
+                2. Set the environment variable:
+                   ```
+                   # Windows (PowerShell):
+                   $env:GEMINI_API_KEY = "your-gemini-key-here"
+                   
+                   # Linux/Mac:
+                   export GEMINI_API_KEY="your-gemini-key-here"
+                   ```
+                
+                3. Restart the Streamlit app after setting any API key
                 """)
+        else:
+            st.success("🚀 AI-powered responses enabled!")
         
         # Controls
         st.header("Controls")

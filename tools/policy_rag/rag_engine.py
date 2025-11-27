@@ -17,46 +17,105 @@ except ImportError:
     openai = None
     OpenAI = None
 
+# Gemini integration
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 class RAGEngine:
-    """Retrieval Augmented Generation engine for HR questions."""
+    """Retrieval Augmented Generation engine for HR questions with multi-provider support."""
     
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        model: str = "gpt-3.5-turbo",
+        openai_api_key: Optional[str] = None,
+        gemini_api_key: Optional[str] = None,
+        provider: str = "auto",
+        model: str = None,
         max_tokens: int = 1000,
         temperature: float = 0.1
     ):
         """
-        Initialize the RAG engine.
+        Initialize the RAG engine with multi-provider support.
         
         Args:
-            api_key: OpenAI API key (or from environment)
-            model: OpenAI model to use
+            openai_api_key: OpenAI API key (or from environment)
+            gemini_api_key: Gemini API key (or from environment)
+            provider: LLM provider - "openai", "gemini", or "auto"
+            model: Model name (provider-specific defaults if None)
             max_tokens: Maximum tokens in response
             temperature: Creativity/randomness (0.0 = deterministic)
         """
-        self.model = model
         self.max_tokens = max_tokens
         self.temperature = temperature
+        self.provider = provider or os.getenv('LLM_PROVIDER', 'auto')
         
-        # Initialize OpenAI client
-        if OpenAI is None:
-            logger.warning("OpenAI library not available. Install with: pip install openai")
-            self.client = None
-        else:
-            api_key = api_key or os.getenv('OPENAI_API_KEY')
-            if not api_key:
-                logger.warning("No OpenAI API key provided. Set OPENAI_API_KEY environment variable.")
-                self.client = None
+        # Initialize clients
+        self.openai_client = None
+        self.gemini_client = None
+        self.active_provider = None
+        
+        # Setup OpenAI
+        if OpenAI is not None:
+            openai_key = openai_api_key or os.getenv('OPENAI_API_KEY')
+            if openai_key and openai_key != "your_openai_api_key_here":
+                try:
+                    self.openai_client = OpenAI(api_key=openai_key)
+                    self.openai_model = model or "gpt-3.5-turbo"
+                    logger.info(f"OpenAI client initialized with model: {self.openai_model}")
+                except Exception as e:
+                    logger.warning(f"Failed to initialize OpenAI client: {e}")
+        
+        # Setup Gemini
+        if genai is not None:
+            gemini_key = gemini_api_key or os.getenv('GEMINI_API_KEY')
+            if gemini_key and gemini_key != "your_gemini_api_key_here":
+                try:
+                    genai.configure(api_key=gemini_key)
+                    self.gemini_model = model or os.getenv('GEMINI_MODEL', 'gemini-1.5-pro')
+                    self.gemini_client = genai.GenerativeModel(self.gemini_model)
+                    logger.info(f"Gemini client initialized with model: {self.gemini_model}")
+                except Exception as e:
+                    logger.warning(f"Failed to initialize Gemini client: {e}")
+        
+        # Determine active provider based on availability and preference
+        self._select_active_provider()
+    
+    def _select_active_provider(self):
+        """Select the active LLM provider based on availability and configuration."""
+        if self.provider == "openai" and self.openai_client:
+            self.active_provider = "openai"
+        elif self.provider == "gemini" and self.gemini_client:
+            self.active_provider = "gemini"
+        elif self.provider == "auto":
+            # Auto mode: prefer OpenAI, fallback to Gemini
+            if self.openai_client:
+                self.active_provider = "openai"
+            elif self.gemini_client:
+                self.active_provider = "gemini"
             else:
-                self.client = OpenAI(api_key=api_key)
-                logger.info(f"RAG Engine initialized with model: {model}")
+                self.active_provider = None
+        else:
+            self.active_provider = None
+        
+        if self.active_provider:
+            logger.info(f"Active LLM provider: {self.active_provider}")
+        else:
+            logger.warning("No LLM provider available. Running in fallback mode.")
+    
+    def get_active_model(self) -> str:
+        """Get the currently active model name."""
+        if self.active_provider == "openai":
+            return self.openai_model
+        elif self.active_provider == "gemini":
+            return self.gemini_model
+        else:
+            return "fallback_mode"
     
     def create_rag_prompt(
         self, 
@@ -137,6 +196,106 @@ Please provide a helpful answer based on the policy documents above. Remember to
         logger.info(f"Created RAG prompt with {len(retrieved_chunks)} chunks for question: '{user_question[:50]}...'")
         return full_prompt
     
+    def _generate_openai_response(self, prompt: str) -> Dict[str, Any]:
+        """Generate response using OpenAI API."""
+        try:
+            completion = self.openai_client.chat.completions.create(
+                model=self.openai_model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=self.max_tokens,
+                temperature=self.temperature
+            )
+            
+            response_text = completion.choices[0].message.content.strip()
+            tokens_used = completion.usage.total_tokens if hasattr(completion, 'usage') else 0
+            
+            return {
+                "success": True,
+                "response": response_text,
+                "model": self.openai_model,
+                "provider": "openai",
+                "tokens_used": tokens_used
+            }
+        except Exception as e:
+            logger.error(f"OpenAI API error: {e}")
+            return {
+                "success": False,
+                "error": f"OpenAI API error: {str(e)}",
+                "provider": "openai"
+            }
+    
+    def _generate_gemini_response(self, prompt: str) -> Dict[str, Any]:
+        """Generate response using Gemini API."""
+        try:
+            response = self.gemini_client.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    max_output_tokens=self.max_tokens,
+                    temperature=self.temperature,
+                )
+            )
+            
+            response_text = response.text.strip()
+            
+            # Gemini doesn't provide token usage in the same way
+            estimated_tokens = len(response_text.split()) * 1.3  # Rough estimate
+            
+            return {
+                "success": True,
+                "response": response_text,
+                "model": self.gemini_model,
+                "provider": "gemini",
+                "tokens_used": int(estimated_tokens)
+            }
+        except Exception as e:
+            logger.error(f"Gemini API error: {e}")
+            return {
+                "success": False,
+                "error": f"Gemini API error: {str(e)}",
+                "provider": "gemini"
+            }
+    
+    def _try_llm_response(self, prompt: str) -> Dict[str, Any]:
+        """Try to generate response with available LLM providers."""
+        results = []
+        
+        # Try the configured provider first
+        if self.active_provider == "openai":
+            result = self._generate_openai_response(prompt)
+            if result["success"]:
+                return result
+            results.append(result)
+            
+            # If OpenAI fails and Gemini is available, try Gemini
+            if self.gemini_client:
+                logger.info("OpenAI failed, trying Gemini as fallback...")
+                result = self._generate_gemini_response(prompt)
+                if result["success"]:
+                    return result
+                results.append(result)
+                
+        elif self.active_provider == "gemini":
+            result = self._generate_gemini_response(prompt)
+            if result["success"]:
+                return result
+            results.append(result)
+            
+            # If Gemini fails and OpenAI is available, try OpenAI
+            if self.openai_client:
+                logger.info("Gemini failed, trying OpenAI as fallback...")
+                result = self._generate_openai_response(prompt)
+                if result["success"]:
+                    return result
+                results.append(result)
+        
+        # All providers failed
+        error_details = "; ".join([f"{r['provider']}: {r.get('error', 'Unknown error')}" for r in results])
+        return {
+            "success": False,
+            "error": f"All LLM providers failed. {error_details}",
+            "provider": "none",
+            "attempts": results
+        }
     def generate_response(
         self, 
         user_question: str, 
@@ -144,7 +303,7 @@ Please provide a helpful answer based on the policy documents above. Remember to
         conversation_history: Optional[List[Dict[str, str]]] = None
     ) -> Dict[str, Any]:
         """
-        Generate a response using RAG with LLM.
+        Generate a response using RAG with multi-provider LLM support.
         
         Args:
             user_question: The user's question
@@ -154,71 +313,52 @@ Please provide a helpful answer based on the policy documents above. Remember to
         Returns:
             Dictionary with response and metadata
         """
-        logger.info(f"Generating RAG response for: '{user_question[:50]}...'")
+        logger.info(f"Generating RAG response for: '{user_question[:50]}...' using {self.active_provider or 'fallback'}")
         
-        if not self.client:
-            return {
-                "success": False,
-                "error": "OpenAI client not available. Check API key and installation.",
-                "response": "I'm sorry, I cannot process your request right now. Please contact HR directly.",
-                "chunks_used": retrieved_chunks,
-                "question": user_question
-            }
+        # Create prompt
+        prompt = self.create_rag_prompt(user_question, retrieved_chunks, conversation_history)
         
-        try:
-            # Create prompt
-            prompt = self.create_rag_prompt(user_question, retrieved_chunks, conversation_history)
+        # Try LLM providers
+        if self.active_provider:
+            llm_result = self._try_llm_response(prompt)
             
-            # Call OpenAI
-            completion = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=self.max_tokens,
-                temperature=self.temperature
-            )
-            
-            # Extract response
-            response_text = completion.choices[0].message.content.strip()
-            
-            # Calculate response metadata
-            tokens_used = completion.usage.total_tokens if hasattr(completion, 'usage') else 0
-            
-            result = {
-                "success": True,
-                "response": response_text,
-                "question": user_question,
-                "chunks_used": len(retrieved_chunks),
-                "chunks_details": retrieved_chunks,
-                "model": self.model,
-                "tokens_used": tokens_used,
-                "timestamp": datetime.now().isoformat(),
-                "has_citations": "[Doc:" in response_text or "Page:" in response_text
-            }
-            
-            logger.info(f"RAG response generated successfully ({tokens_used} tokens)")
-            return result
-            
-        except Exception as e:
-            logger.error(f"Failed to generate RAG response: {e}")
-            
-            # Provide a helpful fallback response with the retrieved information
-            fallback_response = self.generate_fallback_response(user_question, retrieved_chunks)
-            
-            return {
-                "success": True,  # Mark as success since we're providing useful info
-                "response": fallback_response,
-                "question": user_question,
-                "chunks_used": len(retrieved_chunks),
-                "chunks_details": retrieved_chunks,
-                "model": "fallback_mode",
-                "tokens_used": 0,
-                "timestamp": datetime.now().isoformat(),
-                "has_citations": True,
-                "mode": "fallback",
-                "note": "Response generated using fallback mode due to OpenAI API issue"
-            }
+            if llm_result["success"]:
+                # LLM response successful
+                result = {
+                    "success": True,
+                    "response": llm_result["response"],
+                    "question": user_question,
+                    "chunks_used": len(retrieved_chunks),
+                    "chunks_details": retrieved_chunks,
+                    "model": llm_result["model"],
+                    "provider": llm_result["provider"],
+                    "tokens_used": llm_result["tokens_used"],
+                    "timestamp": datetime.now().isoformat(),
+                    "has_citations": "[Doc:" in llm_result["response"] or "Page:" in llm_result["response"]
+                }
+                
+                logger.info(f"RAG response generated successfully using {llm_result['provider']} ({llm_result['tokens_used']} tokens)")
+                return result
+            else:
+                logger.warning(f"LLM providers failed: {llm_result.get('error', 'Unknown error')}")
+        
+        # Fallback mode - use retrieved chunks only
+        fallback_response = self.generate_fallback_response(user_question, retrieved_chunks)
+        
+        return {
+            "success": True,
+            "response": fallback_response,
+            "question": user_question,
+            "chunks_used": len(retrieved_chunks),
+            "chunks_details": retrieved_chunks,
+            "model": "fallback_mode",
+            "provider": "fallback",
+            "tokens_used": 0,
+            "timestamp": datetime.now().isoformat(),
+            "has_citations": True,
+            "mode": "fallback",
+            "note": "Response generated using fallback mode due to LLM provider issues"
+        }
     
     def generate_fallback_response(
         self, 
@@ -296,17 +436,16 @@ I apologize that I cannot provide specific policy details at this moment."""
         Returns:
             Dictionary with response
         """
-        logger.info(f"Generating simple response for: '{user_question[:50]}...'")
+        logger.info(f"Generating simple response for: '{user_question[:50]}...' using {self.active_provider or 'fallback'}")
         
-        if not self.client:
+        if not self.active_provider:
             return {
                 "success": False,
-                "error": "OpenAI client not available",
+                "error": "No LLM provider available",
                 "response": "I'm sorry, I cannot process your request right now. Please contact HR directly."
             }
         
-        try:
-            simple_prompt = f"""You are an HR assistant. The user asked: "{user_question}"
+        simple_prompt = f"""You are an HR assistant. The user asked: "{user_question}"
 
 Since I don't have access to specific company policy documents right now, I cannot provide detailed policy information. Please respond helpfully by:
 1. Acknowledging their question
@@ -315,29 +454,23 @@ Since I don't have access to specific company policy documents right now, I cann
 4. Being professional and helpful
 
 Keep the response brief and professional."""
-            
-            completion = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": simple_prompt}],
-                max_tokens=300,
-                temperature=0.1
-            )
-            
-            response_text = completion.choices[0].message.content.strip()
-            
+        
+        llm_result = self._try_llm_response(simple_prompt)
+        
+        if llm_result["success"]:
             return {
                 "success": True,
-                "response": response_text,
+                "response": llm_result["response"],
                 "question": user_question,
+                "model": llm_result["model"],
+                "provider": llm_result["provider"],
                 "mode": "simple",
                 "timestamp": datetime.now().isoformat()
             }
-            
-        except Exception as e:
-            logger.error(f"Failed to generate simple response: {e}")
+        else:
             return {
                 "success": False,
-                "error": str(e),
+                "error": llm_result.get("error", "LLM providers failed"),
                 "response": "I apologize, but I'm unable to process your question right now. Please contact HR directly for assistance."
             }
 
