@@ -117,6 +117,10 @@ def display_message(role, content, metadata=None):
         
         # Display metadata for assistant responses
         if role == "assistant" and metadata:
+            # Show mode if in fallback
+            if metadata.get("mode") == "fallback":
+                st.info("🔧 **Fallback Mode**: This response was generated using document search only (OpenAI API unavailable)")
+            
             if metadata.get("chunks_details"):
                 with st.expander("📚 Sources and Citations"):
                     for i, chunk in enumerate(metadata["chunks_details"], 1):
@@ -128,8 +132,11 @@ def display_message(role, content, metadata=None):
                         </div>
                         """, unsafe_allow_html=True)
             
+            # Show token usage or fallback note
             if metadata.get("tokens_used"):
                 st.caption(f"Response generated using {metadata['tokens_used']} tokens")
+            elif metadata.get("mode") == "fallback":
+                st.caption("Response generated using document search (no tokens used)")
 
 
 def main():
@@ -166,7 +173,7 @@ def main():
             if stats and not stats.get("error"):
                 st.markdown(f"""
                 <div class="stats-box">
-                    <h4>Database Statistics</h4>
+                    <h4>📊 Database Statistics</h4>
                     <ul>
                         <li>Total chunks: {stats.get('total_chunks', 0)}</li>
                         <li>Documents: {stats.get('unique_documents', 0)}</li>
@@ -178,6 +185,27 @@ def main():
                 st.warning("Database statistics unavailable")
         except Exception as e:
             st.warning(f"Could not load database stats: {e}")
+        
+        # OpenAI API status
+        st.markdown("### 🤖 AI Status")
+        if components["rag_engine"].client:
+            st.success("✅ OpenAI API connected")
+        else:
+            st.warning("⚠️ OpenAI API not available")
+            st.info("💡 **Fallback mode active** - The system will still provide helpful responses using document search, but without AI-generated summaries.")
+            with st.expander("How to fix OpenAI connection"):
+                st.markdown("""
+                1. Get a valid OpenAI API key from https://platform.openai.com/account/api-keys
+                2. Set the environment variable:
+                   ```
+                   # Windows (PowerShell):
+                   $env:OPENAI_API_KEY = "your-api-key-here"
+                   
+                   # Linux/Mac:
+                   export OPENAI_API_KEY="your-api-key-here"
+                   ```
+                3. Restart the Streamlit app
+                """)
         
         # Controls
         st.header("Controls")

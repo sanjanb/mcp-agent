@@ -202,13 +202,89 @@ Please provide a helpful answer based on the policy documents above. Remember to
             
         except Exception as e:
             logger.error(f"Failed to generate RAG response: {e}")
+            
+            # Provide a helpful fallback response with the retrieved information
+            fallback_response = self.generate_fallback_response(user_question, retrieved_chunks)
+            
             return {
-                "success": False,
-                "error": f"Failed to generate response: {str(e)}",
-                "response": "I apologize, but I encountered an error processing your question. Please try again or contact HR directly.",
-                "chunks_used": retrieved_chunks,
-                "question": user_question
+                "success": True,  # Mark as success since we're providing useful info
+                "response": fallback_response,
+                "question": user_question,
+                "chunks_used": len(retrieved_chunks),
+                "chunks_details": retrieved_chunks,
+                "model": "fallback_mode",
+                "tokens_used": 0,
+                "timestamp": datetime.now().isoformat(),
+                "has_citations": True,
+                "mode": "fallback",
+                "note": "Response generated using fallback mode due to OpenAI API issue"
             }
+    
+    def generate_fallback_response(
+        self, 
+        user_question: str, 
+        retrieved_chunks: List[Dict[str, Any]]
+    ) -> str:
+        """
+        Generate a fallback response using retrieved chunks without LLM.
+        
+        Args:
+            user_question: The user's question
+            retrieved_chunks: Retrieved document chunks
+            
+        Returns:
+            Formatted response string with citations
+        """
+        logger.info(f"Generating fallback response for: '{user_question[:50]}...'")
+        
+        if not retrieved_chunks:
+            return f"""I found your question about "{user_question}" but I don't have access to relevant policy documents right now.
+
+**Please contact HR directly for accurate information about:**
+- Company policies
+- Benefits and leave
+- Procedures and requirements
+
+**Contact Information:**
+- HR Department
+- Email: hr@company.com
+- Phone: (555) 123-4567
+
+I apologize that I cannot provide specific policy details at this moment."""
+
+        # Build response with retrieved information
+        response_parts = [
+            f"Based on the available policy documents, here's what I found regarding your question: \"{user_question}\"",
+            "",
+            "**Relevant Policy Information:**"
+        ]
+        
+        for i, chunk in enumerate(retrieved_chunks[:3], 1):  # Limit to top 3 chunks
+            filename = chunk.get('filename', 'Unknown Document')
+            page = chunk.get('page', 'Unknown')
+            text = chunk.get('text', '').strip()
+            score = chunk.get('score', 0.0)
+            
+            response_parts.extend([
+                f"",
+                f"**Source {i}:** {filename} (Page {page}, Relevance: {score:.2f})",
+                f"{text}",
+                f"",
+                f"---"
+            ])
+        
+        response_parts.extend([
+            "",
+            "**Important Note:**",
+            "This response was generated using document search only. For complete and current policy information, please:",
+            "- Contact HR directly for clarification",
+            "- Refer to the complete policy documents", 
+            "- Verify any specific requirements or procedures",
+            "",
+            "**HR Contact:** hr@company.com | (555) 123-4567"
+        ])
+        
+        return "\n".join(response_parts)
     
     def generate_simple_response(self, user_question: str) -> Dict[str, Any]:
         """
