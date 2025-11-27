@@ -4,8 +4,8 @@ echo ===================================
 
 echo.
 echo Setting up Python environment...
-python -m venv venv
-call venv\Scripts\activate.bat
+python -m venv .venv
+call .venv\Scripts\activate.bat
 
 echo.
 echo Installing dependencies...

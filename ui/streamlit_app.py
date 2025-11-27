@@ -138,7 +138,7 @@ def main():
     # Header
     st.markdown("""
     <div class="main-header">
-        <h1>👔 HR Assistant Agent</h1>
+        <h1>HR Assistant Agent</h1>
         <p>Ask me anything about company policies, benefits, and HR procedures!</p>
     </div>
     """, unsafe_allow_html=True)
@@ -156,9 +156,9 @@ def main():
         # Health check
         health = components["server"].health_check()
         if health.get("server_status") == "healthy":
-            st.success("✅ System is healthy")
+            st.success("System is healthy")
         else:
-            st.error("❌ System issues detected")
+            st.error("System issues detected")
         
         # Database stats
         try:
@@ -166,7 +166,7 @@ def main():
             if stats and not stats.get("error"):
                 st.markdown(f"""
                 <div class="stats-box">
-                    <h4>📊 Database Statistics</h4>
+                    <h4>Database Statistics</h4>
                     <ul>
                         <li>Total chunks: {stats.get('total_chunks', 0)}</li>
                         <li>Documents: {stats.get('unique_documents', 0)}</li>
@@ -201,7 +201,7 @@ def main():
     
     # Display conversation history
     if st.session_state.messages:
-        st.subheader("💬 Conversation")
+        st.subheader("Conversation")
         for message in st.session_state.messages:
             display_message(
                 message["role"], 
@@ -209,7 +209,7 @@ def main():
                 message.get("metadata")
             )
     else:
-        st.info("👋 Welcome! Ask me any HR-related question to get started.")
+        st.info("Welcome! Ask me any HR-related question to get started.")
     
     # Chat input
     st.subheader("Ask a Question")
@@ -226,7 +226,7 @@ def main():
     
     # Process user input
     if ask_button and user_input.strip():
-        with st.spinner("🤔 Thinking..."):
+        with st.spinner("Thinking..."):
             try:
                 # Add user message to conversation
                 st.session_state.messages.append({
@@ -243,7 +243,7 @@ def main():
                 )
                 
                 if show_debug:
-                    st.expander("🔍 Debug: Search Results").json(search_result)
+                    st.expander("Debug: Search Results").json(search_result)
                 
                 # Generate response using RAG
                 conversation_history = components["conv_manager"].get_history(
@@ -257,7 +257,7 @@ def main():
                 )
                 
                 if show_debug:
-                    st.expander("🧠 Debug: RAG Response").json(rag_response)
+                    st.expander("Debug: RAG Response").json(rag_response)
                 
                 # Display and store response
                 if rag_response["success"]:
