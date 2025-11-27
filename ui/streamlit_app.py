@@ -287,9 +287,9 @@ def main():
         
         if active_provider:
             provider_name = active_provider.title()
-            st.success(f"🤖 AI: {provider_name}")
+            st.success(f"AI: {provider_name}")
         else:
-            st.info("💡 Basic search mode")
+            st.info("Basic search mode")
             with st.expander("Need AI responses?"):
                 st.markdown("""
                 Add API keys to enable AI responses:
@@ -301,7 +301,7 @@ def main():
         
         # Simple controls
         st.markdown("---")
-        if st.button("🗑️ Clear Chat"):
+        if st.button("Clear Chat"):
             if "user_id" in st.session_state:
                 components["conv_manager"].clear_history(st.session_state.user_id)
             st.session_state.messages = []
@@ -465,7 +465,7 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; color: #888; font-size: 0.85rem; padding: 20px;">
-        💼 HR Assistant • Powered by AI • For urgent matters, contact HR directly
+        HR Assistant • Powered by AI • For urgent matters, contact HR directly
     </div>
     """, unsafe_allow_html=True)
 
