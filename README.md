@@ -5,8 +5,8 @@ Based on your comprehensive description, here's an architecture image that visua
 ```mermaid
 flowchart LR
   subgraph UI
-    ChatUI[Employee Chat UI<br/>(Slack/MS Teams/Web)]
-    RecruiterUI[Recruiter Dashboard<br/>(React)]
+    ChatUI["Employee Chat UI\n(Slack/MS Teams/Web)"]
+    RecruiterUI["Recruiter Dashboard\n(React)"]
     AdminUI[HR Admin Console]
   end
 
@@ -17,16 +17,16 @@ flowchart LR
   end
 
   subgraph Tools["MCP Tools (microservices)"]
-    PolicyTool[policy_search_tool<br/>(vector DB + retrieval)]
-    ResumeTool[resume_screening_tool<br/>(ingest, embeddings, ranker)]
-    OnboardTool[onboarding_tool<br/>(workflows + state)]
-    Authz[authz_service<br/>(SSO/RBAC)]
-    Storage[object_store<br/>(documents, resumes)]
-    VectorDB[Vector DB<br/>(Chroma/Pinecone/Milvus)]
-    SQL[Postgres<br/>(metadata)]
-    LLMService[LLM Adapter<br/>(OpenAI / private)]
-    TaskQueue[Job Queue<br/>(Celery/Prefect)]
-    IT_System[IT / HRIS / Ticketing<br/>(SAP/Workday/JIRA)]
+    PolicyTool["policy_search_tool\n(vector DB + retrieval)"]
+    ResumeTool["resume_screening_tool\n(ingest, embeddings, ranker)"]
+    OnboardTool["onboarding_tool\n(workflows + state)"]
+    Authz["authz_service\n(SSO/RBAC)"]
+    Storage["object_store\n(documents, resumes)"]
+    VectorDB["Vector DB\n(Chroma/Pinecone/Milvus)"]
+    SQL["Postgres\n(metadata)"]
+    LLMService["LLM Adapter\n(OpenAI / private)"]
+    TaskQueue["Job Queue\n(Celery/Prefect)"]
+    IT_System["IT / HRIS / Ticketing\n(SAP/Workday/JIRA)"]
   end
 
   ChatUI -->|user queries| MCP_Server
