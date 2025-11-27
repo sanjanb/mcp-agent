@@ -1,6 +1,27 @@
 # HR Agent MCP Project
 
-An HR Assistant Agent built using Model Context Protocol (MCP) that helps employees get instant answers to HR policy questions through intelligent document retrieval and AI-powered responses.
+An HR Assistant that answers policy questions from your documents. It retrieves relevant sections from a vector database and generates grounded responses with citations via OpenAI or Gemini. Falls back to a Basic (retrieval‑only) mode if no provider is configured.
+
+## At a Glance
+
+- Grounded answers with citations (RAG)
+- Providers: OpenAI, Gemini, or Auto (prefer → fallback)
+- Low‑latency mode (faster models, fewer tokens)
+- Summary caching per session (Redis or in‑memory)
+- Sticky input + streaming responses for fast UX
+
+Quick start (Windows PowerShell):
+
+```powershell
+python -m venv .venv; .\.venv\Scripts\activate
+pip install -r requirements.txt
+set OPENAI_API_KEY=your-openai-key  # or set GEMINI_API_KEY
+python setup.py
+python scripts/warmup.py   # optional
+streamlit run ui/streamlit_app.py
+```
+
+Docs: see `docs/HOW_IT_WORKS.md` for full architecture, data flow, caching, and low‑latency details.
 
 ## 🏗️ Architecture
 
