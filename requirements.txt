@@ -1,4 +1,4 @@
-# MCP (Model Context Protocol) Dependencies
+# MCP Dependencies
 mcp>=1.0.0
 
 # Vector Database & Embeddings
