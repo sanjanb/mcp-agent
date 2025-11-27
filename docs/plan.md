@@ -471,6 +471,48 @@ System: You are an onboarding assistant. Always use the task list returned by th
 
 ```
 
+Branch-by-branch checklist
+
+### **Branch 1: `feature/hr-policy-rag`**
+
+* Build ingestion
+* Build vector DB indexing
+* Build `policy_search` MCP tool
+* Build RAG prompt
+* Build Chat UI
+* Test everything thoroughly
+* Merge into `main`
+
+This gives you a working end-to-end MCP agent.
+Even if you stop here, the project is strong.
+
+---
+
+### **Branch 2: `feature/resume-screening`**
+
+* Build resume ingestion
+* Build resume embeddings
+* Build score function
+* Build MCP tool
+* Build small recruiter UI or reuse chat
+* Test with 5–10 resumes
+* Merge into `main`
+
+Even if this is not perfect, it’s an impressive second module.
+
+---
+
+### **Branch 3: `feature/onboarding-agent`**
+
+* Create onboarding JSON checklist
+* Build MCP tool with actions
+* Add conversational workflow
+* Add simple UI connections
+* Merge when stable
+
+This feature is easy and clean.
+
+
 ---
 
 # ✔ All three features are now documented in detailed Markdown files.
