@@ -48,7 +48,10 @@ st.markdown("""
     html, body, .main, .block-container { background-color: var(--bg) !important; }
     .block-container { max-width: 960px; padding-top: 24px; }
 
-    * { color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+    body, .main, .block-container, .sidebar-content {
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
 
     .header {
         text-align: left;
@@ -119,6 +122,23 @@ st.markdown("""
         margin-top: 10px !important;
     }
 
+    /* Ensure readable text on white/light backgrounds */
+    .stAlert {
+        background: #ffffff !important;
+        color: #000 !important;
+        border: 1px solid var(--border) !important;
+    }
+    .stAlert * { color: #000 !important; }
+
+    .streamlit-expanderHeader, .streamlit-expanderHeader * {
+        color: #000 !important;
+    }
+    .streamlit-expanderHeader {
+        background: #ffffff !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 8px !important;
+    }
+
     .source-item {
         background: transparent;
         border: 1px dashed var(--border);
@@ -164,14 +184,11 @@ def initialize_components():
 
 
 def display_message(role, content, metadata=None):
-    """Display a chat message with clean styling."""
+    """Display a chat message with clean styling (no images/emojis)."""
     css_class = "user-message" if role == "user" else "assistant-message"
-    icon = "👤" if role == "user" else "🤖"
-    name = "You" if role == "user" else "HR Assistant"
     
     st.markdown(f"""
     <div class="{css_class}">
-        {icon} <strong>{name}:</strong><br>
         {content.replace('\n', '<br>')}
     </div>
     """, unsafe_allow_html=True)
@@ -315,12 +332,12 @@ def main():
     else:
         st.markdown("""
         <div style="text-align: center; padding: 40px; color: #666;">
-            <h3>👋 Welcome to HR Assistant!</h3>
+            <h3>Welcome to HR Assistant</h3>
             <p>Ask me about company policies, benefits, vacation time, or any HR-related question.</p>
             <p><strong>Try asking:</strong><br>
-            • "How many vacation days do I get?"<br>
-            • "What's the remote work policy?"<br>
-            • "How do I submit a time off request?"</p>
+            - "How many vacation days do I get?"<br>
+            - "What's the remote work policy?"<br>
+            - "How do I submit a time off request?"</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -411,7 +428,7 @@ def main():
                         words = full_text.split()
                         for w in words:
                             accumulated += (w + " ")
-                            placeholder.markdown(f"<div class='assistant-message'><strong>🤖</strong><br>{accumulated}</div>", unsafe_allow_html=True)
+                            placeholder.markdown(f"<div class='assistant-message'>{accumulated}</div>", unsafe_allow_html=True)
                             time.sleep(0.02)
                         # finalize message
                         placeholder.empty()
