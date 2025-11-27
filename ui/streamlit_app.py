@@ -331,6 +331,7 @@ def main():
         # Settings
         with st.expander("⚙️ Settings"):
             max_results = st.slider("Search results", 1, 10, 3)
+            low_latency_mode = st.checkbox("Low-latency mode (prefer fastest provider or Basic)", True)
             fast_mode = st.checkbox("Fast responses (lower context, quicker stream)", True)
             show_debug = st.checkbox("Debug mode", False)
     
@@ -433,16 +434,26 @@ def main():
                     search_result = components["policy_tool"].search_policies(
                         user_input, top_k=effective_top_k
                     )
-                    
+                    # Pull cached summary and recent history
+                    conversation_summary = components["conv_manager"].get_or_update_summary(
+                        st.session_state.user_id
+                    )
                     conversation_history = components["conv_manager"].get_history(
                         st.session_state.user_id
                     )[:-1]
-                    
+                    # Apply low-latency preference to engine
+                    try:
+                        components["rag_engine"].set_low_latency(low_latency_mode)
+                    except Exception:
+                        pass
+
                     # Streaming responses: simulate token-by-token
                     rag_response = components["rag_engine"].generate_response(
                         user_input,
                         search_result.get("chunks", []),
-                        conversation_history
+                        conversation_history,
+                        conversation_summary=conversation_summary,
+                        low_latency=low_latency_mode
                     )
                     placeholder = st.empty()
                     accumulated = ""
