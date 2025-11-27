@@ -158,44 +158,43 @@ def initialize_components():
 
 
 def display_message(role, content, metadata=None):
-    """Display a chat message with proper styling."""
+    """Display a chat message with clean styling."""
     css_class = "user-message" if role == "user" else "assistant-message"
+    icon = "👤" if role == "user" else "🤖"
+    name = "You" if role == "user" else "HR Assistant"
     
-    with st.container():
-        st.markdown(f"""
-        <div class="chat-message {css_class}">
-            <strong>{"You" if role == "user" else "HR Assistant"}:</strong><br>
-            {content.replace('\n', '<br>')}
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="{css_class}">
+        {icon} <strong>{name}:</strong><br>
+        {content.replace('\n', '<br>')}
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Show sources for assistant responses (simplified)
+    if role == "assistant" and metadata:
+        # AI provider indicator
+        if metadata.get("provider"):
+            provider_name = metadata.get("provider", "unknown").title()
+            st.caption(f"✨ AI response from {provider_name}")
+        elif metadata.get("mode") == "fallback":
+            st.caption("💡 Response based on document search")
         
-        # Display metadata for assistant responses
-        if role == "assistant" and metadata:
-            # Show mode information
-            if metadata.get("mode") == "fallback":
-                st.info("🔧 **Fallback Mode**: This response was generated using document search only (No AI providers available)")
-            elif metadata.get("provider"):
-                provider_name = metadata.get("provider", "unknown")
-                model_name = metadata.get("model", "unknown")
-                if provider_name in ["openai", "gemini"]:
-                    st.success(f"✨ **AI Response**: Generated using {provider_name.title()} ({model_name})")
-            
-            if metadata.get("chunks_details"):
-                with st.expander("📚 Sources and Citations"):
-                    for i, chunk in enumerate(metadata["chunks_details"], 1):
-                        st.markdown(f"""
-                        <div class="citation">
-                            <strong>Source {i}:</strong> {chunk.get('filename', 'Unknown')} 
-                            (Page {chunk.get('page', 'Unknown')}, Score: {chunk.get('score', 0):.2f})<br>
-                            <em>{chunk.get('text', '')[:200]}...</em>
-                        </div>
-                        """, unsafe_allow_html=True)
-            
-            # Show token usage or fallback note
-            if metadata.get("tokens_used"):
-                st.caption(f"Response generated using {metadata['tokens_used']} tokens")
-            elif metadata.get("mode") == "fallback":
-                st.caption("Response generated using document search (no tokens used)")
+        # Show sources if available
+        if metadata.get("chunks_details"):
+            with st.expander(f"📚 Sources ({len(metadata['chunks_details'])})"):
+                for i, chunk in enumerate(metadata["chunks_details"], 1):
+                    filename = chunk.get('filename', 'Unknown')
+                    page = chunk.get('page', '?')
+                    score = chunk.get('score', 0)
+                    text_preview = chunk.get('text', '')[:150] + "..."
+                    
+                    st.markdown(f"""
+                    <div class="source-item">
+                        <strong>Source {i}:</strong> {filename} (Page {page})<br>
+                        <small>Relevance: {score:.1%}</small><br>
+                        <em>{text_preview}</em>
+                    </div>
+                    """, unsafe_allow_html=True)
 
 
 def main():
@@ -396,12 +395,11 @@ def main():
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Footer
+    # Simple footer
     st.markdown("---")
     st.markdown("""
-    <div style="text-align: center; color: #666; font-size: 0.8rem;">
-        HR Assistant Agent powered by MCP (Model Context Protocol)<br>
-        For urgent matters, please contact HR directly.
+    <div style="text-align: center; color: #888; font-size: 0.85rem; padding: 20px;">
+        💼 HR Assistant • Powered by AI • For urgent matters, contact HR directly
     </div>
     """, unsafe_allow_html=True)
 
