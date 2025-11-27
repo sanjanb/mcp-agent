@@ -84,22 +84,27 @@ flowchart LR
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Python 3.8+
 - OpenAI API key
 
 ### Option 1: Automated Setup (Windows)
+
 ```bash
 .\quick_start.bat
 ```
 
 ### Option 2: Automated Setup (Linux/Mac)
+
 ```bash
 chmod +x quick_start.sh
 ./quick_start.sh
 ```
 
 ### Option 3: Manual Setup
+
 1. **Clone and setup environment:**
+
    ```bash
    python -m venv venv
    # Windows:
@@ -109,11 +114,13 @@ chmod +x quick_start.sh
    ```
 
 2. **Install dependencies:**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 3. **Set OpenAI API key:**
+
    ```bash
    # Windows:
    set OPENAI_API_KEY=your-key-here
@@ -122,6 +129,7 @@ chmod +x quick_start.sh
    ```
 
 4. **Initialize the system:**
+
    ```bash
    python setup.py
    ```
@@ -161,12 +169,14 @@ mcp-agent/
 ### ✅ Feature 1: HR Policy RAG Agent (MVP)
 
 **What it does:**
+
 - Answers employee HR questions using company policy documents
 - Provides grounded responses with citations
 - Maintains conversation context
 - Real-time vector similarity search
 
 **Components:**
+
 - **Document Processor**: Converts PDFs/text to searchable chunks
 - **Vector Database**: Chroma DB for semantic search
 - **MCP Tool**: `policy_search` for document retrieval
@@ -174,6 +184,7 @@ mcp-agent/
 - **Chat UI**: Streamlit interface for employees
 
 **Example queries:**
+
 - "How many vacation days do I get?"
 - "What's the remote work policy?"
 - "How do I request sick leave?"
@@ -182,11 +193,13 @@ mcp-agent/
 ### 🔮 Planned Features
 
 **Feature 2: Resume Screening Agent**
+
 - Rank candidate resumes against job descriptions
 - Semantic matching and skill extraction
 - Bias mitigation and fair screening
 
 **Feature 3: Onboarding Agent**
+
 - Guide new hires through onboarding tasks
 - Checklist management and progress tracking
 - Integration with IT/HR systems
@@ -194,26 +207,30 @@ mcp-agent/
 ## 🛠️ Technical Details
 
 ### MCP (Model Context Protocol) Architecture
+
 - **Server**: Central orchestrator handling tool calls and routing
 - **Tools**: Microservices for specific HR functions
 - **Router**: Authentication, authorization, and audit logging
 - **Manifest**: Tool registry and capability discovery
 
 ### RAG (Retrieval Augmented Generation)
+
 - **Embeddings**: Sentence-transformers for semantic search
 - **Chunking**: Smart text splitting with overlap for context
 - **Retrieval**: Vector similarity search in Chroma DB
 - **Generation**: OpenAI GPT for grounded responses with citations
 
 ### Data Flow
+
 ```
-User Query → MCP Server → policy_search Tool → Vector DB → 
+User Query → MCP Server → policy_search Tool → Vector DB →
 Relevant Chunks → RAG Engine → LLM → Cited Response → UI
 ```
 
 ## 📊 System Status
 
 The setup script will show:
+
 - ✅ Document processing status
 - ✅ Vector database initialization
 - ✅ MCP server health check
@@ -222,6 +239,7 @@ The setup script will show:
 ## 🔧 Configuration
 
 ### Environment Variables (`.env`)
+
 ```bash
 OPENAI_API_KEY=your_openai_api_key_here
 VECTOR_DB_PATH=./data/vector_db
@@ -231,6 +249,7 @@ EMBEDDING_MODEL=all-MiniLM-L6-v2
 ```
 
 ### Adding Your Own HR Documents
+
 1. Place PDF or text files in `data/hr_documents/`
 2. Run: `python setup.py` to reprocess
 3. Restart the UI: `streamlit run ui/streamlit_app.py`
@@ -238,6 +257,7 @@ EMBEDDING_MODEL=all-MiniLM-L6-v2
 ## 🧪 Testing
 
 ### Test Individual Components
+
 ```bash
 # Test vector database
 python tools/policy_rag/vector_database.py
@@ -250,6 +270,7 @@ python tools/policy_rag/rag_engine.py
 ```
 
 ### Test End-to-End Flow
+
 1. Start the UI: `streamlit run ui/streamlit_app.py`
 2. Ask a question: "How many vacation days do I get?"
 3. Verify response includes citations
@@ -258,8 +279,9 @@ python tools/policy_rag/rag_engine.py
 ## 📚 Sample Data
 
 The setup creates sample HR documents covering:
+
 - **Employee Handbook**: Leave policies, attendance, benefits
-- **IT Policies**: Computer usage, security, data protection  
+- **IT Policies**: Computer usage, security, data protection
 - **Benefits Guide**: Health insurance, retirement, wellness
 
 ## 🔍 Troubleshooting
@@ -267,14 +289,17 @@ The setup creates sample HR documents covering:
 ### Common Issues
 
 1. **"OpenAI client not available"**
+
    - Install OpenAI: `pip install openai`
    - Set API key: `export OPENAI_API_KEY='your-key'`
 
 2. **"No documents found"**
+
    - Run setup: `python setup.py`
    - Check `data/hr_documents/` has files
 
 3. **"Import errors"**
+
    - Install dependencies: `pip install -r requirements.txt`
    - Check Python version (3.8+)
 
@@ -283,6 +308,7 @@ The setup creates sample HR documents covering:
    - Check document processing logs
 
 ### Getting Help
+
 - Check system status in UI sidebar
 - Review logs for error details
 - Test components individually
@@ -290,8 +316,9 @@ The setup creates sample HR documents covering:
 ## 🎉 Success Indicators
 
 ✅ **Working System Shows:**
+
 - Green health status in UI sidebar
-- Database stats showing processed chunks  
+- Database stats showing processed chunks
 - Search results with citations
 - LLM responses with document references
 - Conversation history maintained
@@ -299,16 +326,17 @@ The setup creates sample HR documents covering:
 ## 🚧 Development Guidelines
 
 Following the project rules in `docs/things-to-keep-in-mind.md`:
+
 - ✅ One feature at a time (HR Policy RAG first)
 - ✅ Keep main branch clean and demo-ready
-- ✅ Start small, test immediately  
+- ✅ Start small, test immediately
 - ✅ Clear file structure and readable code
 - ✅ Independent features with minimal coupling
 
 ## 📈 Next Steps
 
 1. **Deploy Feature 1** to production
-2. **Add Feature 2**: Resume screening agent  
+2. **Add Feature 2**: Resume screening agent
 3. **Add Feature 3**: Onboarding workflow agent
 4. **Enhance UI**: Better styling, mobile support
 5. **Add Authentication**: SSO integration
