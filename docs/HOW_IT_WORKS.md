@@ -7,6 +7,7 @@ This document provides a clear, end-to-end explanation of the HR Assistant proje
 The HR Assistant answers employee questions using company policy documents. It retrieves relevant context from a vector database and generates grounded responses via an LLM (OpenAI or Gemini), including citations. It also supports a Basic (retrieval-only) fallback mode.
 
 High-level goals:
+
 - Keep the UI simple, responsive, and accessible
 - Ground answers in policy documents with citations
 - Minimize latency by pre-warming and caching conversation summaries
@@ -15,6 +16,7 @@ High-level goals:
 ## Architecture
 
 Core layers:
+
 - UI (Streamlit): Chat interface, status, streaming, settings
 - MCP Server + Router: Orchestration and health checks
 - Tools (Policy RAG): Document processing, vector search, and RAG
@@ -59,6 +61,7 @@ flowchart LR
 ## Components
 
 ### 1) Streamlit UI (`ui/streamlit_app.py`)
+
 - Minimalist, monochrome theme; responsive layout; accessible focus styling
 - Sticky input at the bottom with independent chat scroll
 - Streaming responses (simulated word chunks) for faster perceived latency
@@ -72,27 +75,32 @@ flowchart LR
 - Uses conversation summaries to shrink prompt context
 
 ### 2) MCP Server + Router (`mcp_server/server.py`)
+
 - Provides a central place to register tools and run basic health checks
 - The UI calls its health endpoint to show system status (Healthy/Issues)
 - The router is a lightweight orchestrator; tools are discovered and used by the UI layer
 
 ### 3) PolicySearchTool (`tools/policy_rag/mcp_tool.py`)
+
 - Thin wrapper exposing:
   - `search_policies(query, top_k)` → returns relevant chunks with metadata
   - `get_database_stats()` → counts of chunks/documents, health indicators
 - Internally uses the Vector Database and embedding model for similarity search
 
 ### 4) Vector Database (`tools/policy_rag/vector_database.py`)
+
 - Stores and indexes document chunks (Chroma DB)
 - Provides similarity search by embedding queries vs. chunk vectors
 - Exposes stats used by the UI (e.g., `unique_documents`, `total_chunks`)
 
 ### 5) Document Processor (`tools/policy_rag/document_processor.py`)
+
 - Converts PDFs/text to chunks with smart splitting and overlap
 - Extracts metadata (filename, page) for later citations
 - Used by setup/ingest to populate the vector database
 
 ### 6) RAG Engine (`tools/policy_rag/rag_engine.py`)
+
 - Central logic for Retrieval Augmented Generation
 - Key capabilities:
   - Provider selection: `openai`, `gemini`, or `auto` (prefer OpenAI, fallback to Gemini)
@@ -106,6 +114,7 @@ flowchart LR
   - `generate_fallback_response(...)` → builds a grounded answer from chunks only
 
 ### 7) Conversation Manager (`tools/policy_rag/rag_engine.py`)
+
 - Manages per-user chat history and trimming
 - Produces a compact summary (no LLM call) of the last few turns
 - Reads/writes summaries to cache with TTL to reduce repeated work
@@ -115,6 +124,7 @@ flowchart LR
   - `get_or_update_summary(user_id)` → summarization + cache
 
 ### 8) Cache Layer (`tools/cache/redis_cache.py`)
+
 - Provides `get_cache()`:
   - If Redis library/server available: returns Redis-backed cache
   - Otherwise: returns an in-memory fallback
@@ -125,29 +135,32 @@ flowchart LR
 - Key used: `conv:summary:<user_id>` (default ~30 min TTL)
 
 ### 9) Warm-up Script (`scripts/warmup.py`)
+
 - Pre-warms vector search and the LLM provider to reduce first-response latency
 - Safe to run at process startup or via a pre-launch step
 
 ### 10) Setup / Ingest (`setup.py`)
+
 - Processes documents and builds/updates the vector database
 - Skips re-processing if existing chunks are already present (to save time)
 
 ## Data Flow
 
-1) User types a question → UI
-2) UI records the user turn in `ConversationManager`
-3) UI retrieves search results from `PolicySearchTool` (Top-K)
-4) UI fetches a conversation summary (from cache, or generates it quickly)
-5) UI calls `RAGEngine.generate_response(...)` with:
+1. User types a question → UI
+2. UI records the user turn in `ConversationManager`
+3. UI retrieves search results from `PolicySearchTool` (Top-K)
+4. UI fetches a conversation summary (from cache, or generates it quickly)
+5. UI calls `RAGEngine.generate_response(...)` with:
    - question, retrieved chunks, last one or two turns, and the summary
    - low-latency setting (if enabled)
-6) RAG Engine selects the active provider (or falls back to Basic)
-7) Response is streamed to the UI (simulated word chunks)
-8) UI displays sources/citations and updates history
+6. RAG Engine selects the active provider (or falls back to Basic)
+7. Response is streamed to the UI (simulated word chunks)
+8. UI displays sources/citations and updates history
 
 ## Low-Latency Mode
 
 When enabled:
+
 - Caps `max_tokens` (default 350) and sets lower temperature (default 0.0)
 - Temporarily switches to faster models (if configured):
   - `FAST_OPENAI_MODEL` (e.g., `gpt-3.5-turbo`)
@@ -155,6 +168,7 @@ When enabled:
 - If no provider is configured, the UI still returns fast Basic (retrieval-only) answers
 
 Environment overrides:
+
 - `LOW_LATENCY_MAX_TOKENS` (default 350)
 - `LOW_LATENCY_TEMPERATURE` (default 0.0)
 - `LOW_LATENCY_BASIC_ONLY=true` to force retrieval-only in low-latency contexts
