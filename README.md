@@ -1,0 +1,319 @@
+# HR Agent MCP Project
+
+An HR Assistant Agent built using Model Context Protocol (MCP) that helps employees get instant answers to HR policy questions through intelligent document retrieval and AI-powered responses.
+
+## 🏗️ Architecture
+
+Based on your comprehensive description, here's an architecture image that visualizes your proposed AI Agent Platform. I've focused on clarity, modularity, and highlighting the shared infrastructure as well as the distinct feature pipelines.
+
+```mermaid
+flowchart LR
+  subgraph UI
+    ChatUI["Employee Chat UI\n(Slack/MS Teams/Web)"]
+    RecruiterUI["Recruiter Dashboard\n(React)"]
+    AdminUI[HR Admin Console]
+  end
+
+  subgraph MCP_Server["MCP Server / Orchestrator"]
+    Manifest[Manifest + Tool Registry]
+    Router[Call Router & Auth]
+    Audit[Audit Logger]
+  end
+
+  subgraph Tools["MCP Tools (microservices)"]
+    PolicyTool["policy_search_tool\n(vector DB + retrieval)"]
+    ResumeTool["resume_screening_tool\n(ingest, embeddings, ranker)"]
+    OnboardTool["onboarding_tool\n(workflows + state)"]
+    Authz["authz_service\n(SSO/RBAC)"]
+    Storage["object_store\n(documents, resumes)"]
+    VectorDB["Vector DB\n(Chroma/Pinecone/Milvus)"]
+    SQL["Postgres\n(metadata)"]
+    LLMService["LLM Adapter\n(OpenAI / private)"]
+    TaskQueue["Job Queue\n(Celery/Prefect)"]
+    IT_System["IT / HRIS / Ticketing\n(SAP/Workday/JIRA)"]
+  end
+
+  ChatUI -->|user queries| MCP_Server
+  RecruiterUI -->|requests ranking| MCP_Server
+  AdminUI -->|upload docs| MCP_Server
+
+  MCP_Server --> Router
+  Router --> PolicyTool
+  Router --> ResumeTool
+  Router --> OnboardTool
+  Router --> Authz
+  Router --> Audit
+
+  PolicyTool --> VectorDB
+  PolicyTool --> Storage
+  ResumeTool --> VectorDB
+  ResumeTool --> Storage
+  ResumeTool --> SQL
+  OnboardTool --> SQL
+  OnboardTool --> IT_System
+  PolicyTool --> LLMService
+  ResumeTool --> LLMService
+  OnboardTool --> LLMService
+
+  TaskQueue -->|background tasks| VectorDB
+  TaskQueue --> Storage
+  Authz --> SQL
+  Audit --> SQL
+
+  %% Styling with black text
+  style ChatUI fill:#A9DFBF,stroke:#27AE60,stroke-width:2px,color:#000000
+  style RecruiterUI fill:#F9E79F,stroke:#F4D03F,stroke-width:2px,color:#000000
+  style AdminUI fill:#FADBD8,stroke:#C0392B,stroke-width:2px,color:#000000
+
+  style Manifest fill:#D6EAF8,stroke:#2E86C1,stroke-width:2px,color:#000000
+  style Router fill:#E8F8F5,stroke:#28B463,stroke-width:2px,color:#000000
+  style Audit fill:#EAF2F8,stroke:#5D6D7E,stroke-width:2px,color:#000000
+
+  style PolicyTool fill:#D4EFDF,stroke:#2ECC71,stroke-width:2px,color:#000000
+  style ResumeTool fill:#FCF3CF,stroke:#F1C40F,stroke-width:2px,color:#000000
+  style OnboardTool fill:#EBF5FB,stroke:#3498DB,stroke-width:2px,color:#000000
+  style Authz fill:#EBDEF0,stroke:#AF7AC5,stroke-width:2px,color:#000000
+  style Storage fill:#F5EEF8,stroke:#9B59B6,stroke-width:2px,color:#000000
+  style VectorDB fill:#D5F5E3,stroke:#2ECC71,stroke-width:2px,color:#000000
+  style SQL fill:#E8F8F5,stroke:#28B463,stroke-width:2px,color:#000000
+  style LLMService fill:#FADBD8,stroke:#E74C3C,stroke-width:2px,color:#000000
+  style TaskQueue fill:#FCF3CF,stroke:#F4D03F,stroke-width:2px,color:#000000
+  style IT_System fill:#DDEBF1,stroke:#5DADE2,stroke-width:2px,color:#000000
+```
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.8+
+- OpenAI API key
+
+### Option 1: Automated Setup (Windows)
+```bash
+.\quick_start.bat
+```
+
+### Option 2: Automated Setup (Linux/Mac)
+```bash
+chmod +x quick_start.sh
+./quick_start.sh
+```
+
+### Option 3: Manual Setup
+1. **Clone and setup environment:**
+   ```bash
+   python -m venv venv
+   # Windows:
+   venv\Scripts\activate
+   # Linux/Mac:
+   source venv/bin/activate
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Set OpenAI API key:**
+   ```bash
+   # Windows:
+   set OPENAI_API_KEY=your-key-here
+   # Linux/Mac:
+   export OPENAI_API_KEY='your-key-here'
+   ```
+
+4. **Initialize the system:**
+   ```bash
+   python setup.py
+   ```
+
+5. **Start the HR Assistant:**
+   ```bash
+   streamlit run ui/streamlit_app.py
+   ```
+
+## 📁 Project Structure
+
+```
+mcp-agent/
+├── mcp_server/           # MCP orchestration server
+│   └── server.py        # Main MCP server with routing
+├── tools/               # MCP tools (microservices)
+│   ├── policy_rag/      # HR Policy RAG agent
+│   │   ├── document_processor.py
+│   │   ├── vector_database.py
+│   │   ├── mcp_tool.py
+│   │   └── rag_engine.py
+│   ├── resume_screening/ # (Future: Resume screening)
+│   └── onboarding/      # (Future: Onboarding agent)
+├── data/                # Document storage
+│   ├── hr_documents/    # HR policy documents
+│   └── vector_db/       # Chroma vector database
+├── ui/                  # User interfaces
+│   └── streamlit_app.py # Main chat interface
+├── docs/                # Documentation
+├── requirements.txt     # Python dependencies
+├── setup.py            # System initialization
+└── .env.example        # Environment configuration
+```
+
+## 🎯 Features Implemented
+
+### ✅ Feature 1: HR Policy RAG Agent (MVP)
+
+**What it does:**
+- Answers employee HR questions using company policy documents
+- Provides grounded responses with citations
+- Maintains conversation context
+- Real-time vector similarity search
+
+**Components:**
+- **Document Processor**: Converts PDFs/text to searchable chunks
+- **Vector Database**: Chroma DB for semantic search
+- **MCP Tool**: `policy_search` for document retrieval
+- **RAG Engine**: OpenAI-powered response generation
+- **Chat UI**: Streamlit interface for employees
+
+**Example queries:**
+- "How many vacation days do I get?"
+- "What's the remote work policy?"
+- "How do I request sick leave?"
+- "What health benefits are available?"
+
+### 🔮 Planned Features
+
+**Feature 2: Resume Screening Agent**
+- Rank candidate resumes against job descriptions
+- Semantic matching and skill extraction
+- Bias mitigation and fair screening
+
+**Feature 3: Onboarding Agent**
+- Guide new hires through onboarding tasks
+- Checklist management and progress tracking
+- Integration with IT/HR systems
+
+## 🛠️ Technical Details
+
+### MCP (Model Context Protocol) Architecture
+- **Server**: Central orchestrator handling tool calls and routing
+- **Tools**: Microservices for specific HR functions
+- **Router**: Authentication, authorization, and audit logging
+- **Manifest**: Tool registry and capability discovery
+
+### RAG (Retrieval Augmented Generation)
+- **Embeddings**: Sentence-transformers for semantic search
+- **Chunking**: Smart text splitting with overlap for context
+- **Retrieval**: Vector similarity search in Chroma DB
+- **Generation**: OpenAI GPT for grounded responses with citations
+
+### Data Flow
+```
+User Query → MCP Server → policy_search Tool → Vector DB → 
+Relevant Chunks → RAG Engine → LLM → Cited Response → UI
+```
+
+## 📊 System Status
+
+The setup script will show:
+- ✅ Document processing status
+- ✅ Vector database initialization
+- ✅ MCP server health check
+- ✅ Tool registration confirmation
+
+## 🔧 Configuration
+
+### Environment Variables (`.env`)
+```bash
+OPENAI_API_KEY=your_openai_api_key_here
+VECTOR_DB_PATH=./data/vector_db
+VECTOR_DB_COLLECTION_NAME=hr_policies
+HR_DOCUMENTS_PATH=./data/hr_documents
+EMBEDDING_MODEL=all-MiniLM-L6-v2
+```
+
+### Adding Your Own HR Documents
+1. Place PDF or text files in `data/hr_documents/`
+2. Run: `python setup.py` to reprocess
+3. Restart the UI: `streamlit run ui/streamlit_app.py`
+
+## 🧪 Testing
+
+### Test Individual Components
+```bash
+# Test vector database
+python tools/policy_rag/vector_database.py
+
+# Test MCP server
+python mcp_server/server.py
+
+# Test RAG engine
+python tools/policy_rag/rag_engine.py
+```
+
+### Test End-to-End Flow
+1. Start the UI: `streamlit run ui/streamlit_app.py`
+2. Ask a question: "How many vacation days do I get?"
+3. Verify response includes citations
+4. Check debug info in sidebar
+
+## 📚 Sample Data
+
+The setup creates sample HR documents covering:
+- **Employee Handbook**: Leave policies, attendance, benefits
+- **IT Policies**: Computer usage, security, data protection  
+- **Benefits Guide**: Health insurance, retirement, wellness
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+1. **"OpenAI client not available"**
+   - Install OpenAI: `pip install openai`
+   - Set API key: `export OPENAI_API_KEY='your-key'`
+
+2. **"No documents found"**
+   - Run setup: `python setup.py`
+   - Check `data/hr_documents/` has files
+
+3. **"Import errors"**
+   - Install dependencies: `pip install -r requirements.txt`
+   - Check Python version (3.8+)
+
+4. **"Vector DB empty"**
+   - Reinitialize: `python setup.py`
+   - Check document processing logs
+
+### Getting Help
+- Check system status in UI sidebar
+- Review logs for error details
+- Test components individually
+
+## 🎉 Success Indicators
+
+✅ **Working System Shows:**
+- Green health status in UI sidebar
+- Database stats showing processed chunks  
+- Search results with citations
+- LLM responses with document references
+- Conversation history maintained
+
+## 🚧 Development Guidelines
+
+Following the project rules in `docs/things-to-keep-in-mind.md`:
+- ✅ One feature at a time (HR Policy RAG first)
+- ✅ Keep main branch clean and demo-ready
+- ✅ Start small, test immediately  
+- ✅ Clear file structure and readable code
+- ✅ Independent features with minimal coupling
+
+## 📈 Next Steps
+
+1. **Deploy Feature 1** to production
+2. **Add Feature 2**: Resume screening agent  
+3. **Add Feature 3**: Onboarding workflow agent
+4. **Enhance UI**: Better styling, mobile support
+5. **Add Authentication**: SSO integration
+6. **Scale Infrastructure**: Production databases, monitoring
+
+---
+
+**HR Agent MCP - Making HR knowledge accessible to everyone** 🎯
