@@ -2,6 +2,8 @@
 
 A minimalist HR Assistant that answers policy questions from your own documents. It retrieves the most relevant sections from a vector database and generates grounded responses with citations using OpenAI or Gemini. When no LLM is configured, it falls back to a reliable Basic (retrieval‑only) mode.
 
+Although this is a simple project, the architecture and delivery plan follow industry‑level patterns and are deliberately modular and flexible, making it easy to integrate all features discussed in the plan (`docs/plan.md`).
+
 ## Features
 
 Quick Links: [Quick Start](#quick-start-windows-powershell) · [Architecture](#architecture-overview) · [How It Works](docs/HOW_IT_WORKS.md) · [HR Policy RAG Feature](docs/FEATURE_HR_POLICY_RAG.md) · [Project Plan](docs/plan.md)
