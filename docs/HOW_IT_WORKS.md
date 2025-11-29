@@ -26,36 +26,38 @@ Core layers:
 ```mermaid
 flowchart LR
   subgraph UI
-    ST[Streamlit Chat UI]
+    ST["Streamlit Chat UI"]
   end
 
-  subgraph MCP[MCP Server]
-    Router[MCP Router]
-    Health[Health Check]
+  subgraph MCP["MCP Server & Router"]
+    Router[Router / Health]
   end
 
-  subgraph RAG[Policy RAG Tool]
-    Proc[Document Processor]
-    Vec[Vector Database]
-    RAGEngine[RAGEngine]
-    Conv[ConversationManager]
-    Cache[(Redis / In-Memory)]
+  subgraph TOOLS["Policy RAG Tool"]
+    PS[PolicySearchTool]
+    RAG[RAGEngine]
+    CONV[ConversationManager]
+    CACHE[(Redis / In‑Memory Cache)]
   end
 
-  subgraph LLM[Providers]
-    OpenAI[OpenAI]
-    Gemini[Gemini]
+  subgraph DATA["Data Stores"]
+    CHROMA[(Chroma Vector DB)]
+    DOCS[(HR Documents)]
+  end
+
+  subgraph LLM["Providers"]
+    OPENAI[OpenAI]
+    GEMINI[Gemini]
   end
 
   ST --> Router
-  Router --> RAGEngine
-  RAGEngine --> Vec
-  RAGEngine --> Conv
-  Conv --> Cache
-  RAGEngine --> OpenAI
-  RAGEngine --> Gemini
-  Proc --> Vec
-  Health --> ST
+  Router --> PS
+  Router --> RAG
+  PS --> CHROMA
+  PS --> DOCS
+  RAG --> OPENAI
+  RAG --> GEMINI
+  CONV --> CACHE
 ```
 
 ## Components
