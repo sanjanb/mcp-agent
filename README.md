@@ -21,7 +21,7 @@ python scripts/warmup.py   # optional
 streamlit run ui/streamlit_app.py
 ```
 
-Docs: see `docs/HOW_IT_WORKS.md` for full architecture, data flow, caching, and low‑latency details.
+Docs: see `docs/HOW_IT_WORKS.md` (architecture & data flow) and `docs/FEATURE_HR_POLICY_RAG.md` (feature‑specific guide).
 
 ## 🏗️ Architecture
 
