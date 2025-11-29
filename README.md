@@ -173,6 +173,10 @@ This project is optimized for fast startup and quick replies:
 - Grounded outputs: Always with citations and source visibility.
 - Minimal ops burden: Single service, simple env vars, optional Redis.
 
+## Screenshot
+
+![HR Agent — Streamlit UI](assets/Screenshot_29-11-2025_9451_localhost.jpeg)
+
 ## Caching
 
 - Per‑session conversation summaries are cached at key `conv:summary:<user_id>` (≈30 minutes)
