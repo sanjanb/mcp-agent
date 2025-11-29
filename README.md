@@ -173,6 +173,21 @@ This project is optimized for fast startup and quick replies:
 - Grounded outputs: Always with citations and source visibility.
 - Minimal ops burden: Single service, simple env vars, optional Redis.
 
+## Agent Details
+
+- What it does: HR policy Q&A over your docs with grounded citations. See [Architecture](#architecture-overview) and [How It Works](docs/HOW_IT_WORKS.md).
+- Features: Multi‑provider (OpenAI/Gemini/Auto), low‑latency mode, summary caching, streaming UI. See [Usage](#usage) and [Performance](#performance).
+- Limitations: Quality depends on your documents; no SSO yet; Basic mode is less fluent; no persistent chats by default. See [Roadmap](#roadmap-indicative) and [Troubleshooting](#troubleshooting).
+- Tools: Streamlit UI, MCP router, Chroma vector DB, sentence‑transformers, optional Redis. See [Project Structure](#project-structure).
+- APIs & models: OpenAI and Gemini via env vars; fast models for low‑latency; falls back to Basic mode when keys are missing. See [Configuration](#configuration-environment).
+- Setup (Windows PowerShell):
+   ```powershell
+   python -m venv .venv; .\.venv\Scripts\activate
+   pip install -r requirements.txt
+   python setup.py
+   streamlit run ui/streamlit_app.py
+   ```
+
 ## Screenshot
 
 ![HR Agent - Streamlit UI](assets/Screenshot_29-11-2025_9451_localhost.jpeg)
