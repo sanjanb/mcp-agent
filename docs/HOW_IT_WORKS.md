@@ -235,7 +235,3 @@ streamlit run ui/streamlit_app.py
 - Slow First Response: Run `python scripts/warmup.py` and enable Low-Latency mode.
 - Cache Warnings: If Redis is not available, the app uses in-memory cache; to use Redis, set `REDIS_URL` and ensure the server is reachable.
 - No Documents: Re-run `python setup.py` to process documents.
-
----
-
-This document covers how each component works, how data flows through the system, and the strategies we use for performance (low-latency + warm-up) and efficiency (summary caching).
