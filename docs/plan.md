@@ -1,3 +1,250 @@
+## HR Agent - Project Plan (First‑Person)
+
+This document captures my plan for the HR Agent built on MCP. It lays out scope, architecture, specs, and delivery for three features, with the HR Policy RAG Agent as the first milestone. The tone and branch strategy reflect how I intend to execute the work.
+
+---
+
+### Goals
+
+- Provide accurate, citation‑backed HR answers from our policy docs
+- Keep the UX simple, fast, and reliable (works with or without LLM APIs)
+- Structure the codebase as MCP tools for easy extension (RAG first, then add‑ons)
+
+### Deliverables
+
+- Feature 1: HR Policy RAG Agent (core, MVP)
+- Feature 2: Resume Screening Agent (optional extension)
+- Feature 3: Onboarding Agent (lightweight workflows)
+
+Each feature is specified so a teammate can implement it independently.
+
+---
+
+# Feature 1 — HR Policy RAG Agent
+
+#### Overview
+
+My first milestone is a grounded Q&A assistant for HR policies. It retrieves relevant chunks from policy documents and generates answers with explicit citations. It must degrade gracefully to retrieval‑only answers if no LLM is available.
+
+#### Scope
+
+1. Ingest and index PDFs/text
+2. Chunk + embed; store in local vector DB (Chroma)
+3. Expose MCP tool `policy_search` for retrieval
+4. RAG prompt template enforcing citation‑only answers
+5. Simple UI (Streamlit) with sources panel
+
+#### Architecture
+
+```
+Employee → Chat UI → LLM
+↓ (MCP Tool Call)
+MCP Server
+↓
+policy_search Tool
+↓
+Vector Database
+↓
+HR Documents Storage
+```
+
+#### Components
+
+- Ingestion: pdfplumber → text → clean → chunk (~500 tokens) + metadata (filename, page)
+- Embeddings + storage: sentence‑transformers or OpenAI embeddings → Chroma (chunk text, embedding, metadata)
+- MCP `policy_search`: input (`query`, `top_k`) → search → return JSON with `text`, `score`, `doc_id`, `page`
+- RAG prompt: include user query + top chunks; answer only from evidence; include citations
+- UI: Streamlit chat; answer + citations below
+
+#### MCP Tool Spec (policy_search)
+
+Input:
+
+```json
+{ "query": "string", "top_k": 5 }
+```
+
+Output:
+
+```json
+{
+  "query": "string",
+  "chunks": [
+    {
+      "doc_id": "string",
+      "text": "string",
+      "score": "float",
+      "page": "integer"
+    }
+  ]
+}
+```
+
+#### Build Workflow
+
+1. Ingestion → chunks → embeddings → Chroma
+2. Tool `policy_search` → query embedding → similarity search → JSON
+3. RAG prompt → enforce citations
+4. Chat UI → ask → tool → LLM → render answer + sources
+5. Test with leave/PTO/benefits/attendance queries
+
+#### Success Criteria
+
+- Answers include correct citations; no hallucinations
+- Tool calls visible in logs; search returns relevant chunks
+- Works with and without LLM keys (retrieval‑only fallback)
+
+#### Future Extensions
+
+- HR FAQ dataset, multilingual support, document versioning, admin uploader
+
+---
+
+# Feature 2 — Resume Screening Agent (Optional)
+
+#### Objective
+
+Rank resumes against a job description using embeddings and simple scoring; present ranking, top snippets, and a skills breakdown.
+
+#### Architecture
+
+```
+Recruiter → Web UI → MCP Server → resume_screening Tool
+↓
+Vector DB
+↓
+Resume Storage
+```
+
+#### Components
+
+- Ingest resumes (PDF→text), optionally extract sections; chunk by paragraph/bullets
+- Store embeddings in vector DB under `resumes` namespace (metadata: resume_id, chunk_index, candidate_name)
+- MCP `resume_screening` inputs: `job_description`, `resume_ids`
+- Output:
+
+```json
+{
+  "results": [
+    {
+      "resume_id": "string",
+      "score": "float",
+      "breakdown": { "semantic": 0.82, "skills": 0.61 },
+      "top_snippets": ["...", "...", "..."]
+    }
+  ]
+}
+```
+
+- Ranking (simple): `semantic_score = avg top‑5 similarities`; `final_score = 0.7*semantic + 0.3*skill_match`
+- Skills: simple keyword counts (e.g., Python, AWS)
+
+#### UI Integration
+
+- Table: Rank | Resume | Score | Fit Summary; optional LLM‑generated summaries (fit/risks/next actions)
+
+#### Success Criteria
+
+- Human‑plausible ranking, top 3 snippets per resume, stable tool calls
+
+---
+
+# Feature 3 — Onboarding Agent (Simple Workflows)
+
+#### Objective
+
+Guide new hires through a JSON‑backed checklist. No RAG/embeddings, just structured steps and MCP actions.
+
+#### Architecture
+
+```
+Employee → Chat UI → LLM
+↓ (MCP call)
+onboarding Tool
+↓
+JSON Database
+```
+
+#### Components
+
+- Checklist JSON (e.g., `onboarding_checklist.json`):
+
+```json
+{
+  "engineering": [
+    { "id": 1, "task": "Set up email", "completed": false },
+    { "id": 2, "task": "Read engineering handbook", "completed": false },
+    { "id": 3, "task": "Join Slack channels", "completed": false }
+  ]
+}
+```
+
+- MCP `onboarding` actions: `get_tasks`, `mark_completed`, `get_status`
+- Input/Output: small JSON payloads
+- LLM prompt: “Always use tool results; never invent tasks.”
+
+#### Success Criteria
+
+- Users can view pending tasks, mark completion, and see updated status via the tool
+
+---
+
+## Branch Strategy
+
+### Branch 1: `feature/hr-policy-rag`
+
+- Build ingestion + vector indexing
+- Implement `policy_search` tool
+- Add RAG prompt + Streamlit chat
+- Test end‑to‑end thoroughly
+- Merge to `main`
+
+### Branch 2: `feature/resume-screening`
+
+- Resume ingestion + embeddings
+- Scoring + MCP tool + minimal UI
+- Test with 5–10 resumes
+- Merge to `main`
+
+### Branch 3: `feature/onboarding-agent`
+
+- Checklist JSON + MCP actions
+- Conversational workflow + UI connection
+- Merge when stable
+
+---
+
+## Execution Notes
+
+- Keep scope tight per branch and ship incrementally
+- Prioritize reliability, then speed (warm‑up, low‑latency, caching)
+- Maintain clear logs and JSON schemas for all tools
+
+## Definition of Done (Feature 1)
+
+- Search returns relevant chunks with metadata
+- Answers are grounded with citations (or retrieval‑only fallback)
+- UI streams responses and shows sources
+- Passing ad‑hoc tests for common HR questions
+
+## Risks & Mitigations
+
+- Poor retrieval quality → adjust chunking, embedding model, or top‑K
+- Latency → enable warm‑up, use low‑latency mode, cache summaries
+- LLM outages → Basic retrieval‑only fallback always available
+
+## Timeline (Indicative)
+
+- Week 1: Feature 1 MVP (ingest, search, RAG, UI)
+- Week 2: Perf passes (warm‑up, low‑latency, caching), docs and polish
+- Week 3+: Optional Feature 2 and 3 in parallel branches
+
+---
+
+This plan reflects how I intend to build and phase the work. It is concrete enough for teammates to pick up tasks independently while staying aligned with my priorities and architecture.
+
+---
+
 Got it — here are **three separate Markdown files**, one for each feature.
 Each file is written so that **a coding agent or teammate can directly start building the feature from it**, with architecture, workflow, data handling, tool design, and MCP integration.
 
@@ -309,7 +556,6 @@ For each candidate:
 Show ranking table:
 | Rank | Resume | Score | Fit Summary |
 
----
 
 ## 6. Steps for Coding Agent
 
@@ -324,7 +570,7 @@ Show ranking table:
    - upload resumes
    - view ranking
 
----
+
 
 ## 7. Success Indicators
 
@@ -332,7 +578,7 @@ Show ranking table:
 - Shows top 3 supporting snippets.
 - Stable MCP tool call.
 
----
+
 
 ## 8. Future Extensions
 
@@ -341,11 +587,11 @@ Show ranking table:
 - Bias mitigation
 - ATS integration
 
-````
+
 
 ---
 
-# **📄 Feature 3 — Onboarding Agent (Markdown File)**
+# **Feature 3 — Onboarding Agent (Markdown File)**
 **Filename: `Onboarding_Agent.md`**
 
 ```md
@@ -359,7 +605,7 @@ This is the simplest feature:
 - No embeddings
 - Only JSON workflows
 
----
+
 
 ## 2. Objectives
 The system must:
@@ -370,7 +616,7 @@ The system must:
 3. Allow marking tasks as completed via MCP tool.
 4. Show next tasks in the UI.
 
----
+
 
 ## 3. Architecture
 

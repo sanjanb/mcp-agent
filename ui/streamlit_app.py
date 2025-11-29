@@ -27,52 +27,132 @@ except ImportError as e:
 
 # Page configuration
 st.set_page_config(
-    page_title="HR Assistant Agent",
-    page_icon="👔",
+    page_title="HR Assistant",
+    page_icon="💼",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for better styling
+# Custom CSS for minimalist black/white theme (Groq-like)
 st.markdown("""
 <style>
-    .main-header {
-        padding: 1rem 0;
-        border-bottom: 2px solid #f0f0f0;
-        margin-bottom: 2rem;
+    :root {
+        --bg: #0b0b0b;
+        --panel: #121212;
+        --text: #f5f5f5;
+        --muted: #bdbdbd;
+        --border: #1f1f1f;
+        --accent: #ffffff;
     }
-    
-    .chat-message {
-        padding: 1rem;
-        margin: 0.5rem 0;
+
+    html, body, .main, .block-container { background-color: var(--bg) !important; }
+    .block-container { max-width: 960px; padding-top: 24px; }
+
+    body, .main, .block-container, .sidebar-content {
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+
+    .header {
+        text-align: left;
+        padding: 8px 0 20px 0;
+        margin-bottom: 12px;
+    }
+    .header h1 { font-size: 24px; font-weight: 600; margin: 0; color: var(--text); }
+    .header p { margin: 6px 0 0 0; color: var(--muted); font-size: 14px; }
+
+    .status-row { display: flex; gap: 8px; margin: 8px 0 16px 0; }
+    .badge {
+        border: 1px solid var(--border);
+        color: var(--muted);
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: var(--panel);
+    }
+
+    .chat-container {
+        height: 58vh;
+        overflow-y: auto;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background-color: var(--panel);
+        margin-bottom: 12px;
+    }
+
+    .user-message, .assistant-message {
+        padding: 12px 14px;
+        margin: 10px 0;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: transparent;
+    }
+    .user-message strong, .assistant-message strong { color: var(--muted); font-weight: 500; }
+
+    .input-section {
+        position: sticky;
+        bottom: 0;
+        background: var(--panel);
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        box-shadow: 0 -8px 16px rgba(0,0,0,0.25);
+    }
+
+    .typing-indicator { color: var(--muted); font-size: 12px; padding: 6px 0; }
+    .pulse { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--text); animation: pulse 1s infinite; margin-left: 6px; }
+    @keyframes pulse { 0% { opacity: 0.2 } 50% { opacity: 1 } 100% { opacity: 0.2 } }
+
+    .stTextArea > div > div > textarea {
+        background: transparent !important;
+        color: var(--text) !important;
+        border-radius: 10px !important;
+        border: 1px solid var(--border) !important;
+    }
+
+    .stButton > button {
+        background: var(--accent) !important;
+        color: #000 !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 8px !important;
+        padding: 10px 16px !important;
+        font-weight: 600 !important;
+        width: 100% !important;
+        margin-top: 10px !important;
+    }
+
+    /* Ensure readable text on white/light backgrounds */
+    .stAlert {
+        background: #ffffff !important;
+        color: #000 !important;
+        border: 1px solid var(--border) !important;
+    }
+    .stAlert * { color: #000 !important; }
+
+    .streamlit-expanderHeader, .streamlit-expanderHeader * {
+        color: #000 !important;
+    }
+    .streamlit-expanderHeader {
+        background: #ffffff !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 8px !important;
+    }
+
+    .source-item {
+        background: transparent;
+        border: 1px dashed var(--border);
         border-radius: 8px;
-        border-left: 4px solid #007ACC;
-        background-color: #f8f9fa;
+        padding: 10px;
+        color: var(--muted);
     }
+
+    .footer { color: var(--muted); font-size: 12px; text-align: center; padding: 12px 0; }
     
-    .user-message {
-        background-color: #e3f2fd;
-        border-left-color: #2196F3;
-    }
-    
-    .assistant-message {
-        background-color: #f1f8e9;
-        border-left-color: #4CAF50;
-    }
-    
-    .citation {
-        background-color: #fff3e0;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        font-size: 0.8rem;
-        margin: 0.25rem 0;
-    }
-    
-    .stats-box {
-        background-color: #f5f5f5;
-        padding: 1rem;
-        border-radius: 8px;
-        margin: 0.5rem 0;
+    /* Mobile tweaks */
+    @media (max-width: 768px) {
+        .chat-container { height: 50vh; }
+        .stButton > button { padding: 12px 14px !important; }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -103,94 +183,157 @@ def initialize_components():
         return None
 
 
+def warmup_system(components):
+    """Warm caches and providers to reduce first-response latency."""
+    try:
+        # Warm vector DB index
+        _ = components["policy_tool"].search_policies("policy", top_k=1)
+    except Exception:
+        pass
+    try:
+        # Warm LLM provider (non-streaming, discard)
+        rag = components["rag_engine"]
+        active = getattr(rag, 'active_provider', None)
+        if active:
+            _ = rag.generate_response("warmup", [], [])
+    except Exception:
+        pass
+
 def display_message(role, content, metadata=None):
-    """Display a chat message with proper styling."""
+    """Display a chat message with clean styling (no images/emojis)."""
     css_class = "user-message" if role == "user" else "assistant-message"
     
-    with st.container():
-        st.markdown(f"""
-        <div class="chat-message {css_class}">
-            <strong>{"You" if role == "user" else "HR Assistant"}:</strong><br>
-            {content.replace('\n', '<br>')}
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="{css_class}">
+        {content.replace('\n', '<br>')}
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Show sources for assistant responses (simplified)
+    if role == "assistant" and metadata:
+        # AI provider indicator
+        if metadata.get("provider"):
+            provider_name = metadata.get("provider", "unknown").title()
+            st.caption(f"✨ AI response from {provider_name}")
+        elif metadata.get("mode") == "fallback":
+            st.caption("💡 Response based on document search")
         
-        # Display metadata for assistant responses
-        if role == "assistant" and metadata:
-            if metadata.get("chunks_details"):
-                with st.expander("📚 Sources and Citations"):
-                    for i, chunk in enumerate(metadata["chunks_details"], 1):
-                        st.markdown(f"""
-                        <div class="citation">
-                            <strong>Source {i}:</strong> {chunk.get('filename', 'Unknown')} 
-                            (Page {chunk.get('page', 'Unknown')}, Score: {chunk.get('score', 0):.2f})<br>
-                            <em>{chunk.get('text', '')[:200]}...</em>
-                        </div>
-                        """, unsafe_allow_html=True)
-            
-            if metadata.get("tokens_used"):
-                st.caption(f"Response generated using {metadata['tokens_used']} tokens")
+        # Show sources if available
+        if metadata.get("chunks_details"):
+            with st.expander(f"📚 Sources ({len(metadata['chunks_details'])})"):
+                for i, chunk in enumerate(metadata["chunks_details"], 1):
+                    filename = chunk.get('filename', 'Unknown')
+                    page = chunk.get('page', '?')
+                    score = chunk.get('score', 0)
+                    text_preview = chunk.get('text', '')[:150] + "..."
+                    
+                    st.markdown(f"""
+                    <div class="source-item">
+                        <strong>Source {i}:</strong> {filename} (Page {page})<br>
+                        <small>Relevance: {score:.1%}</small><br>
+                        <em>{text_preview}</em>
+                    </div>
+                    """, unsafe_allow_html=True)
 
 
 def main():
     """Main application function."""
     
-    # Header
-    st.markdown("""
-    <div class="main-header">
-        <h1>HR Assistant Agent</h1>
-        <p>Ask me anything about company policies, benefits, and HR procedures!</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Initialize components
+    # Initialize components first
     components = initialize_components()
     if not components:
         st.error("System initialization failed. Please check the logs and try again.")
         return
     
-    # Sidebar for system status and controls
+    # One-time warmup to speed first interaction
+    if "_warmed" not in st.session_state:
+        warmup_system(components)
+        st.session_state._warmed = True
+
+    # Header section
+    st.markdown("""
+    <div class="header">
+        <h1>HR Assistant</h1>
+        <p>Minimalist chat for company policies and HR help</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Minimal status badges
+    stats = None
+    try:
+        stats = components["policy_tool"].get_database_stats()
+    except Exception:
+        pass
+    rag_engine = components["rag_engine"]
+    active_provider = getattr(rag_engine, 'active_provider', None)
+
+    st.markdown("""
+    <div class="status-row" role="status" aria-label="System status">
+        <span class="badge">Docs: %s</span>
+        <span class="badge">Provider: %s</span>
+        <span class="badge">Mode: %s</span>
+    </div>
+    """ % (
+        (stats.get('unique_documents', 0) if stats else 0),
+        (active_provider.title() if active_provider else "Auto"),
+        ("AI" if active_provider else "Basic")
+    ), unsafe_allow_html=True)
+    
+    # Simplified sidebar
     with st.sidebar:
-        st.header("System Status")
+        st.header("System Info")
         
         # Health check
         health = components["server"].health_check()
         if health.get("server_status") == "healthy":
-            st.success("System is healthy")
+            st.success("System Healthy")
         else:
-            st.error("System issues detected")
+            st.error("System Issues")
         
-        # Database stats
+        # Quick stats
         try:
             stats = components["policy_tool"].get_database_stats()
             if stats and not stats.get("error"):
-                st.markdown(f"""
-                <div class="stats-box">
-                    <h4>Database Statistics</h4>
-                    <ul>
-                        <li>Total chunks: {stats.get('total_chunks', 0)}</li>
-                        <li>Documents: {stats.get('unique_documents', 0)}</li>
-                        <li>Collection: {stats.get('collection_name', 'Unknown')}</li>
-                    </ul>
-                </div>
-                """, unsafe_allow_html=True)
+                total_chunks = stats.get('total_chunks', 0)
+                unique_docs = stats.get('unique_documents', 0)
+                st.info(f"{unique_docs} documents loaded\{total_chunks} searchable sections")
             else:
-                st.warning("Database statistics unavailable")
-        except Exception as e:
-            st.warning(f"Could not load database stats: {e}")
+                st.warning("No documents loaded")
+        except Exception:
+            st.warning("Database unavailable")
         
-        # Controls
-        st.header("Controls")
-        if st.button("Clear Conversation"):
+        # AI Status
+        rag_engine = components["rag_engine"]
+        active_provider = getattr(rag_engine, 'active_provider', None)
+        
+        if active_provider:
+            provider_name = active_provider.title()
+            st.success(f"AI: {provider_name}")
+        else:
+            st.info("Basic search mode")
+            with st.expander("Need AI responses?"):
+                st.markdown("""
+                Add API keys to enable AI responses:
+                - OpenAI: Set `OPENAI_API_KEY`
+                - Gemini: Set `GEMINI_API_KEY`
+                
+                Restart app after adding keys.
+                """)
+        
+        # Simple controls
+        st.markdown("---")
+        if st.button("Clear Chat"):
             if "user_id" in st.session_state:
                 components["conv_manager"].clear_history(st.session_state.user_id)
             st.session_state.messages = []
             st.rerun()
         
         # Settings
-        st.header("Settings")
-        max_results = st.slider("Max search results", 1, 10, 5)
-        show_debug = st.checkbox("Show debug info", False)
+        with st.expander("⚙️ Settings"):
+            max_results = st.slider("Search results", 1, 10, 3)
+            low_latency_mode = st.checkbox("Low-latency mode (prefer fastest provider or Basic)", True)
+            fast_mode = st.checkbox("Fast responses (lower context, quicker stream)", True)
+            show_debug = st.checkbox("Debug mode", False)
     
     # Initialize session state
     if "messages" not in st.session_state:
@@ -199,9 +342,8 @@ def main():
     if "user_id" not in st.session_state:
         st.session_state.user_id = f"user_{int(time.time())}"
     
-    # Display conversation history
+    # Chat conversation display
     if st.session_state.messages:
-        st.subheader("Conversation")
         for message in st.session_state.messages:
             display_message(
                 message["role"], 
@@ -209,98 +351,158 @@ def main():
                 message.get("metadata")
             )
     else:
-        st.info("Welcome! Ask me any HR-related question to get started.")
+        # Render welcome inside the styled container in a single block
+        st.markdown("""
+        <div class="chat-container" id="chat">
+            <div style="text-align: center; padding: 40px; color: #bdbdbd;">
+                <h3 style="margin-top:0; color:#f5f5f5;">Welcome to HR Assistant</h3>
+                <p>Ask me about company policies, benefits, vacation time, or any HR-related question.</p>
+                <p><strong>Try asking:</strong><br>
+                - "How many vacation days do I get?"<br>
+                - "What's the remote work policy?"<br>
+                - "How do I submit a time off request?"</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
     
-    # Chat input
-    st.subheader("Ask a Question")
+    # Input section (sticky bottom)
+    st.markdown('<div class="input-section" role="form" aria-label="Ask a question">', unsafe_allow_html=True)
     user_input = st.text_area(
-        "Your question:",
-        placeholder="e.g., How many vacation days do I get? What's the remote work policy?",
-        height=100,
-        key="user_input"
+        "Ask your question:",
+        placeholder="Type your HR question here...",
+        height=80,
+        key="user_input",
+        label_visibility="collapsed",
+        help="Press Enter to send, Shift+Enter for newline. Commands: /clear, /help, /provider openai|gemini|auto"
     )
-    
-    col1, col2 = st.columns([1, 4])
-    with col1:
-        ask_button = st.button("Ask Question", type="primary")
-    
-    # Process user input
-    if ask_button and user_input.strip():
-        with st.spinner("Thinking..."):
-            try:
-                # Add user message to conversation
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": user_input
-                })
-                components["conv_manager"].add_turn(
-                    st.session_state.user_id, "user", user_input
-                )
-                
-                # Search for relevant policy chunks
-                search_result = components["policy_tool"].search_policies(
-                    user_input, top_k=max_results
-                )
-                
-                if show_debug:
-                    st.expander("Debug: Search Results").json(search_result)
-                
-                # Generate response using RAG
-                conversation_history = components["conv_manager"].get_history(
-                    st.session_state.user_id
-                )[:-1]  # Exclude the current question
-                
-                rag_response = components["rag_engine"].generate_response(
-                    user_input,
-                    search_result.get("chunks", []),
-                    conversation_history
-                )
-                
-                if show_debug:
-                    st.expander("Debug: RAG Response").json(rag_response)
-                
-                # Display and store response
-                if rag_response["success"]:
-                    response_text = rag_response["response"]
-                    
-                    # Add assistant response to conversation
+    send = st.button("Send", type="primary", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Keyboard-first UX: interpret commands
+    def handle_command(text: str):
+        t = text.strip()
+        if t.lower() == "/clear":
+            if "user_id" in st.session_state:
+                components["conv_manager"].clear_history(st.session_state.user_id)
+            st.session_state.messages = []
+            st.rerun()
+        if t.lower() == "/help":
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": "Commands: /clear, /help, /provider openai|gemini|auto"
+            })
+            st.rerun()
+        if t.lower().startswith("/provider"):
+            parts = t.split()
+            if len(parts) >= 2:
+                choice = parts[1].lower()
+                if choice in ["openai", "gemini", "auto"]:
+                    try:
+                        components["rag_engine"].set_provider(choice)
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": f"Provider set to {choice.title()}"
+                        })
+                        st.rerun()
+                    except Exception as e:
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": f"Unable to set provider: {e}"
+                        })
+                        st.rerun()
+
+    if send and user_input.strip():
+        # Commands first
+        if user_input.strip().startswith("/"):
+            handle_command(user_input)
+        else:
+            # Process the question
+            with st.spinner("Thinking..."):
+                try:
+                    # Add user message
                     st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": response_text,
-                        "metadata": rag_response
+                        "role": "user", 
+                        "content": user_input
                     })
                     components["conv_manager"].add_turn(
-                        st.session_state.user_id, "assistant", response_text
+                        st.session_state.user_id, "user", user_input
                     )
                     
-                else:
-                    error_message = f"I apologize, but I encountered an error: {rag_response.get('error', 'Unknown error')}"
+                    # Search and generate response
+                    # Limit results more aggressively in fast mode
+                    effective_top_k = max_results if not 'fast_mode' in locals() or not fast_mode else min(max_results, 3)
+                    search_result = components["policy_tool"].search_policies(
+                        user_input, top_k=effective_top_k
+                    )
+                    # Pull cached summary and recent history
+                    conversation_summary = components["conv_manager"].get_or_update_summary(
+                        st.session_state.user_id
+                    )
+                    conversation_history = components["conv_manager"].get_history(
+                        st.session_state.user_id
+                    )[:-1]
+                    # Apply low-latency preference to engine
+                    try:
+                        components["rag_engine"].set_low_latency(low_latency_mode)
+                    except Exception:
+                        pass
+
+                    # Streaming responses: simulate token-by-token
+                    rag_response = components["rag_engine"].generate_response(
+                        user_input,
+                        search_result.get("chunks", []),
+                        conversation_history,
+                        conversation_summary=conversation_summary,
+                        low_latency=low_latency_mode
+                    )
+                    placeholder = st.empty()
+                    accumulated = ""
+                    if rag_response.get("success"):
+                        full_text = rag_response.get("response", "")
+                        words = full_text.split()
+                        # Faster perceived streaming in fast mode
+                        chunk_size = 5 if ('fast_mode' in locals() and fast_mode) else 1
+                        delay = 0.005 if ('fast_mode' in locals() and fast_mode) else 0.02
+                        for i in range(0, len(words), chunk_size):
+                            accumulated += (" ".join(words[i:i+chunk_size]) + " ")
+                            placeholder.markdown(f"<div class='assistant-message'>{accumulated}</div>", unsafe_allow_html=True)
+                            time.sleep(delay)
+                        # finalize message
+                        placeholder.empty()
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": full_text,
+                            "metadata": rag_response
+                        })
+                        components["conv_manager"].add_turn(
+                            st.session_state.user_id, "assistant", full_text
+                        )
+                    else:
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": f"Using fallback. Error: {rag_response.get('error', 'Unknown error')}"
+                        })
+                    
+                    # Refresh to show new messages
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.warning(f"Something went wrong, retry available. {e}")
                     st.session_state.messages.append({
                         "role": "assistant",
-                        "content": error_message
+                        "content": "I apologize, but I encountered a technical error. Please try again."
                     })
-                
-                # Clear input and rerun to show new messages
-                st.session_state.user_input = ""
-                st.rerun()
-                
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": "I apologize, but I encountered a technical error. Please try again or contact HR directly."
-                })
-                st.rerun()
+                    st.rerun()
+    elif send and not user_input.strip():
+        st.warning("Please enter a question first.")
     
-    elif ask_button and not user_input.strip():
-        st.warning("Please enter a question before clicking 'Ask Question'.")
+    st.markdown('</div>', unsafe_allow_html=True)
     
-    # Footer
+    # Simple footer
     st.markdown("---")
     st.markdown("""
-    <div style="text-align: center; color: #666; font-size: 0.8rem;">
-        HR Assistant Agent powered by MCP (Model Context Protocol)<br>
-        For urgent matters, please contact HR directly.
+    <div style="text-align: center; color: #888; font-size: 0.85rem; padding: 20px;">
+        HR Assistant • Powered by AI • For urgent matters, contact HR directly
     </div>
     """, unsafe_allow_html=True)
 
