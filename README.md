@@ -1,5 +1,6 @@
 # HR Agent (Model Context Protocol)
 
+
 A minimalist HR Assistant that answers policy questions from your own documents. It retrieves the most relevant sections from a vector database and generates grounded responses with citations using OpenAI or Gemini. When no LLM is configured, it falls back to a reliable Basic (retrieval‑only) mode.
 
 ## Features
@@ -17,6 +18,43 @@ The UI calls an MCP Server that routes to a Policy RAG tool. The tool searches a
 
 - Full details: `docs/HOW_IT_WORKS.md`
 - Feature guide: `docs/FEATURE_HR_POLICY_RAG.md`
+
+```mermaid
+flowchart LR
+   subgraph UI
+      ST["Streamlit Chat UI"]
+   end
+
+   subgraph MCP["MCP Server & Router"]
+      Router[Router / Health]
+   end
+
+   subgraph TOOLS["Policy RAG Tool"]
+      PS[PolicySearchTool]
+      RAG[RAGEngine]
+      CONV[ConversationManager]
+      CACHE[(Redis / In‑Memory Cache)]
+   end
+
+   subgraph DATA["Data Stores"]
+      CHROMA[(Chroma Vector DB)]
+      DOCS[(HR Documents)]
+   end
+
+   subgraph LLM["Providers"]
+      OPENAI[OpenAI]
+      GEMINI[Gemini]
+   end
+
+   ST --> Router
+   Router --> PS
+   Router --> RAG
+   PS --> CHROMA
+   PS --> DOCS
+   RAG --> OPENAI
+   RAG --> GEMINI
+   CONV --> CACHE
+```
 
 ## Prerequisites
 
@@ -79,13 +117,13 @@ LOW_LATENCY_TEMPERATURE=0.0
 
 - Ask questions like: “How many vacation days do I get?”, “What’s the remote work policy?”
 - Commands in the input:
-   - `/clear` — reset chat
-   - `/help` — list commands
-   - `/provider openai|gemini|auto` — switch provider at runtime
+  - `/clear` — reset chat
+  - `/help` — list commands
+  - `/provider openai|gemini|auto` — switch provider at runtime
 - Settings (sidebar → Settings):
-   - Search results (Top‑K)
-   - Low‑latency mode (prefer faster models or Basic)
-   - Fast responses (smaller retrieval context for speed)
+  - Search results (Top‑K)
+  - Low‑latency mode (prefer faster models or Basic)
+  - Fast responses (smaller retrieval context for speed)
 - Sources are shown beneath answers; retrieval‑only mode indicates document‑based answers without an LLM.
 
 ## Performance
@@ -148,6 +186,7 @@ mcp-agent/
 ---
 
 For full technical detail, see `docs/HOW_IT_WORKS.md` and `docs/FEATURE_HR_POLICY_RAG.md`.
+
 # HR Agent MCP Project
 
 An HR Assistant that answers policy questions from your documents. It retrieves relevant sections from a vector database and generates grounded responses with citations via OpenAI or Gemini. Falls back to a Basic (retrieval‑only) mode if no provider is configured.
