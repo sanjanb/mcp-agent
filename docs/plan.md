@@ -1,4 +1,4 @@
-## HR Agent — Project Plan (First‑Person)
+## HR Agent - Project Plan (First‑Person)
 
 This document captures my plan for the HR Agent built on MCP. It lays out scope, architecture, specs, and delivery for three features, with the HR Policy RAG Agent as the first milestone. The tone and branch strategy reflect how I intend to execute the work.
 
