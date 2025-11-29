@@ -15,6 +15,15 @@ Quick Links: [Quick Start](#quick-start-windows-powershell) · [Architecture](#a
 - Minimal Streamlit UI with sticky input and streaming responses
 - Works even without LLM keys (retrieval‑only Basic mode)
 
+## Why It Wins
+
+- Speed: Warm‑up + low‑latency mode deliver fast first and follow‑up answers.
+- Reliability: Functions even with no API keys (retrieval‑only fallback).
+- Grounding: Answers always cite sources for trust and auditability.
+- Simplicity: One‑screen UI, copyable commands, minimal setup.
+- Industry‑grade design: Modular MCP tools, provider‑agnostic, cache‑aware.
+- Measurable: Track latency, cache hit‑rate, and retrieval Top‑K choices.
+
 ## Architecture Overview
 
 The UI calls an MCP Server that routes to a Policy RAG tool. The tool searches a vector database (Chroma) for relevant chunks and the RAG Engine composes a prompt for the selected LLM provider (or uses retrieval‑only fallback). Conversation summaries are cached to shrink context on follow‑ups.
@@ -89,6 +98,21 @@ python scripts/warmup.py
 streamlit run ui/streamlit_app.py
 ```
 
+## 5‑Minute Demo Script
+
+1. Start the app:
+   ```powershell
+   python -m venv .venv; .\.venv\Scripts\activate
+   pip install -r requirements.txt
+   python setup.py
+   streamlit run ui/streamlit_app.py
+   ```
+2. Ask: "How many vacation days do I get?" → Show citations under the answer.
+3. Toggle Low‑latency mode in the sidebar → Ask a follow‑up to show faster response.
+4. Switch provider at runtime: type `/provider auto`, then `/provider openai` or `/provider gemini`.
+5. Show resilience: unset API key and refresh → app continues in Basic (retrieval‑only) mode.
+6. Clear and replay: `/clear` → ask again and point to cached summary speeding context.
+
 ## Configuration (Environment)
 
 Core settings:
@@ -139,11 +163,26 @@ This project is optimized for fast startup and quick replies:
 - “Fast responses” limits Top‑K to reduce retrieval/LLM input size
 - Streaming renderer shows results progressively for snappy UX
 
+## Key Differentiators
+
+- Provider‑agnostic RAG: Seamlessly switch between OpenAI, Gemini, or Auto.
+- Resilient by design: Works in offline/keys‑missing scenarios via Basic mode.
+- Performance‑first: Warm‑up, low‑latency tuning, and cache‑aware prompts.
+- Grounded outputs: Always with citations and source visibility.
+- Minimal ops burden: Single service, simple env vars, optional Redis.
+
 ## Caching
 
 - Per‑session conversation summaries are cached at key `conv:summary:<user_id>` (≈30 minutes)
 - Uses Redis if available; otherwise a per‑process in‑memory fallback
 - Summaries are combined with only the most recent turns to reduce LLM prompt size
+
+## Security & Privacy
+
+- Data locality: Documents remain local; only minimal prompts are sent to providers.
+- Secrets: API keys are provided via environment variables; no keys stored in code.
+- Optional cache: Redis is local by default; if unavailable, in‑memory fallback is used.
+- No PII retention: Conversation summaries are short‑lived (≈30 minutes by default).
 
 ## Project Structure
 
