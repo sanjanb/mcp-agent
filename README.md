@@ -175,7 +175,7 @@ This project is optimized for fast startup and quick replies:
 
 ## Screenshot
 
-![HR Agent — Streamlit UI](assets/Screenshot_29-11-2025_9451_localhost.jpeg)
+![HR Agent - Streamlit UI](assets/Screenshot_29-11-2025_9451_localhost.jpeg)
 
 ## Caching
 
