@@ -556,7 +556,6 @@ For each candidate:
 Show ranking table:
 | Rank | Resume | Score | Fit Summary |
 
----
 
 ## 6. Steps for Coding Agent
 
@@ -571,7 +570,7 @@ Show ranking table:
    - upload resumes
    - view ranking
 
----
+
 
 ## 7. Success Indicators
 
@@ -579,7 +578,7 @@ Show ranking table:
 - Shows top 3 supporting snippets.
 - Stable MCP tool call.
 
----
+
 
 ## 8. Future Extensions
 
@@ -588,11 +587,11 @@ Show ranking table:
 - Bias mitigation
 - ATS integration
 
-````
+
 
 ---
 
-# **📄 Feature 3 — Onboarding Agent (Markdown File)**
+# **Feature 3 — Onboarding Agent (Markdown File)**
 **Filename: `Onboarding_Agent.md`**
 
 ```md
@@ -606,7 +605,7 @@ This is the simplest feature:
 - No embeddings
 - Only JSON workflows
 
----
+
 
 ## 2. Objectives
 The system must:
@@ -617,7 +616,7 @@ The system must:
 3. Allow marking tasks as completed via MCP tool.
 4. Show next tasks in the UI.
 
----
+
 
 ## 3. Architecture
 
