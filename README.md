@@ -181,12 +181,12 @@ This project is optimized for fast startup and quick replies:
 - Tools: Streamlit UI, MCP router, Chroma vector DB, sentence‑transformers, optional Redis. See [Project Structure](#project-structure).
 - APIs & models: OpenAI and Gemini via env vars; fast models for low‑latency; falls back to Basic mode when keys are missing. See [Configuration](#configuration-environment).
 - Setup (Windows PowerShell):
-   ```powershell
-   python -m venv .venv; .\.venv\Scripts\activate
-   pip install -r requirements.txt
-   python setup.py
-   streamlit run ui/streamlit_app.py
-   ```
+  ```powershell
+  python -m venv .venv; .\.venv\Scripts\activate
+  pip install -r requirements.txt
+  python setup.py
+  streamlit run ui/streamlit_app.py
+  ```
 
 ## Screenshot
 
