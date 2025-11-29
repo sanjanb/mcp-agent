@@ -6,7 +6,7 @@ This document provides a clear, end-to-end explanation of the HR Assistant proje
 
 The HR Assistant answers employee questions using company policy documents. It retrieves relevant context from a vector database and generates grounded responses via an LLM (OpenAI or Gemini), including citations. It also supports a Basic (retrieval-only) fallback mode.
 
-High-level goals:
+High-level achievements:
 
 - Keep the UI simple, responsive, and accessible
 - Ground answers in policy documents with citations
