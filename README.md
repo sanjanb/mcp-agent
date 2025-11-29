@@ -1,5 +1,7 @@
 # HR Agent (Model Context Protocol)
 
+[![Built by Sanjan B M](https://img.shields.io/badge/Built_by-Sanjan%20B%20M-000?style=flat)](https://www.linkedin.com/in/sanjan-bm/) [![Website](https://img.shields.io/badge/Website-sanjanb.github.io-000?style=flat)](https://sanjanb.github.io/) [![Email](https://img.shields.io/badge/Contact-Email-000?style=flat)](mailto:sanjanacharaya1234@gmail.com)
+
 A minimalist HR Assistant that answers policy questions from your own documents. It retrieves the most relevant sections from a vector database and generates grounded responses with citations using OpenAI or Gemini. When no LLM is configured, it falls back to a reliable Basic (retrieval‑only) mode.
 
 Although this is a simple project, the architecture and delivery plan follow industry‑level patterns and are deliberately modular and flexible, making it easy to integrate all features discussed in the plan (`docs/plan.md`).
