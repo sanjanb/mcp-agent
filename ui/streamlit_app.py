@@ -286,9 +286,9 @@ def main():
         # Health check
         health = components["server"].health_check()
         if health.get("server_status") == "healthy":
-            st.success("✅ System Healthy")
+            st.success("System Healthy")
         else:
-            st.error("❌ System Issues")
+            st.error("System Issues")
         
         # Quick stats
         try:
@@ -296,7 +296,7 @@ def main():
             if stats and not stats.get("error"):
                 total_chunks = stats.get('total_chunks', 0)
                 unique_docs = stats.get('unique_documents', 0)
-                st.info(f"📚 {unique_docs} documents loaded\n📄 {total_chunks} searchable sections")
+                st.info(f"{unique_docs} documents loaded\{total_chunks} searchable sections")
             else:
                 st.warning("No documents loaded")
         except Exception:
@@ -417,7 +417,7 @@ def main():
             handle_command(user_input)
         else:
             # Process the question
-            with st.spinner("🤔 Thinking..."):
+            with st.spinner("Thinking..."):
                 try:
                     # Add user message
                     st.session_state.messages.append({
