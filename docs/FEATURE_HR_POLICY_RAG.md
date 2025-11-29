@@ -7,6 +7,7 @@ A professional, self‑contained guide to the HR Policy Retrieval‑Augmented Ge
 The HR Policy RAG feature answers employee questions using your company policy documents. It retrieves the most relevant policy excerpts from a vector database and generates grounded answers with citations via OpenAI or Gemini. If no provider is configured or available, it returns a concise, retrieval‑only answer based on the sources.
 
 Highlights:
+
 - Grounded answers with explicit citations
 - Multi‑provider support: OpenAI, Gemini, or Auto (prefer → fallback)
 - Low‑latency mode for faster responses (shorter outputs, faster models)
@@ -37,30 +38,34 @@ Highlights:
 
 ## Data Flow (Query Lifecycle)
 
-1) User submits a question in the UI
-2) UI records the user turn in `ConversationManager`
-3) UI retrieves Top‑K chunks via `PolicySearchTool.search_policies()`
-4) UI fetches a cached conversation summary (or generates a quick heuristic summary)
-5) UI calls `RAGEngine.generate_response()` with: question, chunks, summary, recent turns, low‑latency flag
-6) RAGEngine chooses the active provider (or Basic fallback) and returns an answer + metadata
-7) UI streams the answer text, displays source citations, and persists the assistant turn
+1. User submits a question in the UI
+2. UI records the user turn in `ConversationManager`
+3. UI retrieves Top‑K chunks via `PolicySearchTool.search_policies()`
+4. UI fetches a cached conversation summary (or generates a quick heuristic summary)
+5. UI calls `RAGEngine.generate_response()` with: question, chunks, summary, recent turns, low‑latency flag
+6. RAGEngine chooses the active provider (or Basic fallback) and returns an answer + metadata
+7. UI streams the answer text, displays source citations, and persists the assistant turn
 
 ## Configuration (Environment)
 
 Required (for AI responses; if omitted, Basic mode works):
+
 - `OPENAI_API_KEY` or `GEMINI_API_KEY`
 
 Vector DB & Documents:
+
 - `VECTOR_DB_PATH=./data/vector_db`
 - `VECTOR_DB_COLLECTION_NAME=hr_policies`
 - `HR_DOCUMENTS_PATH=./data/hr_documents`
 - `EMBEDDING_MODEL=all-MiniLM-L6-v2`
 
 Caching (optional):
+
 - `REDIS_URL=redis://localhost:6379/0`
   - or `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`
 
 Low‑latency tuning (optional):
+
 - `FAST_OPENAI_MODEL=gpt-3.5-turbo`
 - `FAST_GEMINI_MODEL=gemini-1.5-flash`
 - `LOW_LATENCY_MAX_TOKENS=350`
@@ -88,11 +93,13 @@ streamlit run ui/streamlit_app.py
 ```
 
 In the UI sidebar → Settings:
+
 - Search results (Top‑K)
 - Low‑latency mode (prefer faster models / Basic)
 - Fast responses (smaller context for speed)
 
 Commands in the input box:
+
 - `/clear` — reset chat
 - `/help` — list commands
 - `/provider openai|gemini|auto` — switch provider at runtime
