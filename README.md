@@ -30,6 +30,7 @@ Quick Links: [Quick Start](#quick-start-windows-powershell) · [Architecture](#a
 ### Advanced Features
 
 - Resume screening and ranking (clean, professional scoring output)
+- Onboarding task tracking (JSON-based MCP tool)
 - Conversation summary caching (Redis with in‑memory fallback)
 - Streaming response rendering for improved perceived latency
 - Runtime provider switching via chat commands
@@ -97,12 +98,14 @@ flowchart LR
             CACHE[("Redis / In-Memory Cache")]
         end
         RS["ResumeScreeningTool"]
+        ONB["OnboardingTool"]
     end
 
     subgraph DATA["Data Stores"]
         CHROMA[("Chroma Vector DB")]
         DOCS[("HR Documents")]
         RESUMES[("Resumes Store")]
+        ONBDATA[("Onboarding JSON")]
     end
 
     subgraph LLM["Providers"]
@@ -114,9 +117,11 @@ flowchart LR
     Router --> PS
     Router --> RAG
     Router --> RS
+    Router --> ONB
     PS --> CHROMA
     PS --> DOCS
     RS --> RESUMES
+    ONB --> ONBDATA
     RAG --> OPENAI
     RAG --> GEMINI
     CONV --> CACHE
@@ -129,8 +134,8 @@ flowchart LR
     classDef prov fill:#ffffff,stroke:#000000,stroke-width:1px
     class ST ui
     class Router mcp
-    class PS,RAG,CONV,CACHE,RS tool
-    class CHROMA,DOCS,RESUMES data
+    class PS,RAG,CONV,CACHE,RS,ONB tool
+    class CHROMA,DOCS,RESUMES,ONBDATA data
     class OPENAI,GEMINI prov
 ```
 
@@ -559,6 +564,35 @@ pip install --upgrade -r requirements.txt
 ### Debug Mode
 
 ## Resume Screening: Clean Professional Output
+
+## Onboarding Tool
+
+The onboarding MCP tool manages role-based task checklists stored in a single JSON file (`data/onboarding_tasks.json`). It exposes three actions:
+
+- `onboarding_get_tasks(role)` — Returns all tasks with id, description, and completion flag.
+- `onboarding_mark_completed(role, task_id)` — Marks a task complete (idempotent; returns note if already complete).
+- `onboarding_get_status(role)` — Provides totals, completed count, percent complete, and remaining tasks.
+
+Example JSON schema:
+
+```json
+{
+  "engineering": [
+    { "id": 1, "task": "Set up email", "completed": false },
+    { "id": 2, "task": "Read engineering handbook", "completed": false }
+  ],
+  "hr": [{ "id": 1, "task": "Access HRIS portal", "completed": true }]
+}
+```
+
+Design principles:
+
+- File-based storage for simplicity; atomic write with temp file to reduce corruption risk.
+- Predictable JSON output for all actions (success flag, errors explicit).
+- Thread-safe completion updates via a lock.
+- No hidden state: UI reflects file contents directly on each interaction.
+
+Environment override: set `ONBOARDING_TASKS_PATH` to point to an alternate checklist file.
 
 The resume screening component provides a structured, defensible evaluation:
 
