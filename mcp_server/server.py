@@ -14,8 +14,6 @@ import os
 # Add tools to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from tools.policy_rag.mcp_tool import MCP_TOOLS as POLICY_TOOLS
-
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -46,11 +44,27 @@ class MCPServer:
         logger.info(f"MCP Server initialized with {len(self.tools)} tools")
     
     def _register_tools(self):
-        """Register all MCP tools."""
-        # Register HR Policy RAG tools
-        for tool_name, tool_config in POLICY_TOOLS.items():
-            self.tools[tool_name] = tool_config
-            logger.info(f"Registered tool: {tool_name}")
+        """Register all MCP tools with graceful degradation on import failure."""
+        # Attempt to load HR Policy RAG tools
+        try:
+            from tools.policy_rag.mcp_tool import MCP_TOOLS as POLICY_TOOLS  # type: ignore
+            for tool_name, tool_config in POLICY_TOOLS.items():
+                self.tools[tool_name] = tool_config
+                logger.info(f"Registered tool: {tool_name}")
+        except Exception as e:
+            logger.warning(f"Policy RAG tools not loaded: {e}")
+
+        # Attempt to load Onboarding tools
+        try:
+            from tools.onboarding.mcp_tool import MCP_TOOLS as ONBOARDING_TOOLS  # type: ignore
+            for tool_name, tool_config in ONBOARDING_TOOLS.items():
+                if tool_name in self.tools:
+                    logger.warning(f"Tool name conflict: {tool_name} already registered; skipping onboarding duplicate")
+                    continue
+                self.tools[tool_name] = tool_config
+                logger.info(f"Registered tool: {tool_name}")
+        except Exception as e:
+            logger.warning(f"Onboarding tools not loaded: {e}")
     
     def get_tool_manifest(self) -> Dict[str, Any]:
         """
