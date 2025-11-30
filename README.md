@@ -2,107 +2,105 @@
 
 [![Built by Sanjan B M](https://img.shields.io/badge/Built_by-Sanjan%20B%20M-000?style=flat)](https://www.linkedin.com/in/sanjan-bm/) [![Website](https://img.shields.io/badge/Website-sanjanb.github.io-000?style=flat)](https://sanjanb.github.io/) [![Email](https://img.shields.io/badge/Contact-Email-000?style=flat)](mailto:sanjanacharaya1234@gmail.com)
 
-A production-ready HR Assistant that answers policy questions from your company documents using Model Context Protocol (MCP). It features grounded responses with citations, multi-provider LLM support, and sophisticated caching for enterprise-grade performance.
+A production-ready HR Assistant that answers HR policy questions using a retrieval‑augmented (RAG) architecture built on the Model Context Protocol (MCP). It delivers grounded, citation-backed responses; supports multiple LLM providers; and applies performance and caching strategies suitable for enterprise deployment.
 
 ## Live Demo
 
 ![HR Agent Main Interface](assets/Screenshot_29-11-2025_9451_localhost.jpeg)
-_HR Policy RAG in action - Ask questions about vacation days, benefits, and policies with real-time citations_
+_Policy question answered with sources and structured citations._
 
 ![Low-Latency Mode](assets/Screenshot_30-11-2025_94541_localhost.jpeg)
-_Low-latency mode activated for faster responses with streamlined UI_
+_Interface operating in low‑latency configuration for accelerated responses._
 
-![Resume Screening Feature](assets/Screenshot_30-11-2025_9461_localhost.jpeg)  
-_Resume screening tool ranking candidates against job descriptions_
+![Resume Screening Feature](assets/Screenshot_30-11-2025_9461_localhost.jpeg)
+_Resume screening panel ranking candidates against a supplied job description._
 
 ## Key Features
 
-**Quick Links:** [Quick Start](#quick-start-windows-powershell) · [Architecture](#architecture-overview) · [How It Works](docs/HOW_IT_WORKS.md) · [HR Policy RAG Feature](docs/FEATURE_HR_POLICY_RAG.md) · [Project Plan](docs/plan.md)
+Quick Links: [Quick Start](#quick-start-windows-powershell) · [Architecture](#architecture-overview) · [How It Works](docs/HOW_IT_WORKS.md) · [HR Policy RAG Feature](docs/FEATURE_HR_POLICY_RAG.md) · [Project Plan](docs/plan.md)
 
 ### Core Capabilities
 
-- **Grounded RAG Responses**: Always cite sources with page numbers and document references
-- **Multi-Provider Support**: OpenAI, Gemini, or Auto mode with intelligent fallback
-- **Enterprise Performance**: Warm-up scripts, low-latency mode, Redis caching
-- **Resilient Design**: Works offline with retrieval-only Basic mode
-- **MCP Architecture**: Modular tool system for easy feature expansion
+- Grounded retrieval‑augmented answers with source citations
+- Multi‑provider LLM support (OpenAI, Gemini, automatic fallback)
+- Enterprise performance layer: warm‑up, low‑latency mode, Redis caching
+- Offline resilience via retrieval‑only Basic mode
+- Modular MCP tool architecture enabling rapid extension
 
 ### Advanced Features
 
-- **Resume Screening**: AI-powered candidate ranking with skill matching
-- **Conversation Caching**: Redis-backed summary caching for faster follow-ups
-- **Streaming UI**: Real-time response rendering with sticky input
-- **Provider Switching**: Runtime LLM provider changes via commands
-- **Performance Monitoring**: Built-in metrics for cache hit rates and latency
+- Resume screening and ranking (clean, professional scoring output)
+- Conversation summary caching (Redis with in‑memory fallback)
+- Streaming response rendering for improved perceived latency
+- Runtime provider switching via chat commands
+- Performance metrics for latency and cache efficiency
 
-## 🎯 Why This Solution Wins
+## Why This Solution Delivers Value
 
-### 🚀 Speed & Performance
+### Performance
 
-- **Sub-second responses** with warm-up and low-latency optimizations
-- **Smart caching** reduces redundant processing and API calls
-- **Streaming UI** provides immediate feedback and progressive loading
-- **Provider auto-fallback** ensures consistent availability
+- Sub‑second warm responses after initialization
+- Caching reduces repeated embedding and retrieval work
+- Streaming minimizes time to first token
+- Provider auto‑fallback maintains continuity under transient failures
 
-### 🔒 Reliability & Trust
+### Reliability
 
-- **Grounded responses** with explicit source citations and page numbers
-- **Offline capability** through retrieval-only Basic mode
-- **No hallucinations** - answers strictly based on your documents
-- **Audit trail** with complete conversation and retrieval logs
+- Strict citation formatting limits hallucination risk
+- Graceful degradation to Basic retrieval without API keys
+- Complete request and retrieval logs for auditability
+- Deterministic prompt construction for reproducibility
 
-### 🎨 User Experience
+### User Experience
 
-- **One-screen interface** with intuitive chat design
-- **Real-time streaming** responses with typing indicators
-- **Mobile-responsive** design that works on any device
-- **Accessibility-first** with proper focus management and screen reader support
+- Single consolidated interface for policies and screening
+- Real‑time token streaming with stable layout
+- Responsive design for varied display sizes
+- Accessibility considerations (focus order, clear contrast)
 
-### 🏗️ Enterprise Architecture
+### Architecture
 
-- **Modular MCP design** enables rapid feature additions
-- **Provider-agnostic** LLM integration with runtime switching
-- **Horizontal scaling** ready with Redis and containerization support
-- **Comprehensive monitoring** with built-in health checks and metrics
+- Provider‑agnostic orchestration via MCP tools
+- Clearly separated UI, tooling, retrieval, and persistence layers
+- Horizontal scaling readiness: external cache, containerization patterns
+- Health and status indicators surfaced in UI
 
 ## Architecture Overview
 
-The system follows a modular MCP (Model Context Protocol) architecture with clear separation of concerns:
+Layered MCP architecture with clear separation of responsibilities:
 
-- **UI Layer**: Streamlit chat interface with streaming responses
-- **MCP Server**: Central orchestration with tool routing and health checks
-- **Policy RAG Tool**: Document processing, vector search, and response generation
-- **LLM Providers**: Multi-provider support (OpenAI/Gemini) with auto-fallback
-- **Caching Layer**: Redis-backed conversation summaries with in-memory fallback
-- **Data Stores**: Chroma vector database for document embeddings
+- UI Layer: Streamlit chat interface with streaming responses
+- MCP Server: Tool orchestration, routing, health/status checks
+- Policy RAG Tool: Document ingestion, chunking, vector similarity retrieval
+- RAG Engine: Prompt assembly, synthesis, citation formatting
+- Resume Screening Tool: Embedding-based candidate evaluation and ranking
+- Conversation Manager: History summarization and context optimization
+- Cache Layer: Redis (optional) for summaries and metrics
+- Data Stores: Chroma vector database + local document corpus
 
 ```mermaid
 flowchart TB
-    subgraph "User Interface"
-        ST["Streamlit Chat UI<br/>• Streaming responses<br/>• Provider switching<br/>• Performance settings"]
+    subgraph UI
+        ST["Streamlit UI\nChat + Streaming + Controls"]
     end
-
-    subgraph "MCP Server & Router"
-        Router["Router & Health Checks<br/>• Tool orchestration<br/>• System monitoring<br/>• Request routing"]
+    subgraph Server
+        Router["MCP Server\nRouting + Health"]
     end
-
-    subgraph "MCP Tools"
-        PS["Policy Search Tool<br/>• Document retrieval<br/>• Vector similarity<br/>• Metadata extraction"]
-        RAG["RAG Engine<br/>• Prompt generation<br/>• Response synthesis<br/>• Citation formatting"]
-        RS["Resume Screening Tool<br/>• Candidate ranking<br/>• Skill matching<br/>• Snippet extraction"]
-        CONV["Conversation Manager<br/>• History tracking<br/>• Summary caching<br/>• Context optimization"]
-        CACHE["Redis Cache Layer<br/>• Session summaries<br/>• Performance metrics<br/>• TTL management"]
+    subgraph Tools
+        PS["Policy Search\nVector Retrieval"]
+        RAG["RAG Engine\nPrompt + Citations"]
+        RS["Resume Screening\nRanking + Matching"]
+        CONV["Conversation Manager\nSummarization"]
+        CACHE["Cache Layer\nRedis / Memory"]
     end
-
-    subgraph "Data Layer"
-        CHROMA["Chroma Vector DB<br/>• Document embeddings<br/>• Similarity search<br/>• Metadata storage"]
-        DOCS["HR Documents<br/>• Policy files<br/>• Benefits guides<br/>• Handbooks"]
-        RESUMES["Resume Storage<br/>• Candidate files<br/>• Skill extraction<br/>• Text processing"]
+    subgraph Data
+        CHROMA["Chroma DB\nEmbeddings"]
+        DOCS["HR Docs"]
+        RESUMES["Resumes"]
     end
-
-    subgraph "LLM Providers"
-        OPENAI["OpenAI<br/>• GPT-4/3.5<br/>• Fast models<br/>• Embeddings"]
-        GEMINI["Google Gemini<br/>• Gemini Pro/Flash<br/>• Auto fallback<br/>• Cost optimization"]
+    subgraph Providers
+        OPENAI["OpenAI Models"]
+        GEMINI["Gemini Models"]
     end
 
     ST --> Router
@@ -116,17 +114,16 @@ flowchart TB
     RAG --> GEMINI
     CONV --> CACHE
 
-    classDef uiStyle fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
-    classDef mcpStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef toolStyle fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
-    classDef dataStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    classDef llmStyle fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-
-    class ST uiStyle
-    class Router mcpStyle
-    class PS,RAG,RS,CONV,CACHE toolStyle
-    class CHROMA,DOCS,RESUMES dataStyle
-    class OPENAI,GEMINI llmStyle
+    classDef a fill:#e1f5fe,stroke:#0277bd,stroke-width:1px
+    classDef b fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px
+    classDef c fill:#e8f5e8,stroke:#388e3c,stroke-width:1px
+    classDef d fill:#fff3e0,stroke:#f57c00,stroke-width:1px
+    classDef e fill:#fce4ec,stroke:#c2185b,stroke-width:1px
+    class ST a
+    class Router b
+    class PS,RAG,RS,CONV,CACHE c
+    class CHROMA,DOCS,RESUMES d
+    class OPENAI,GEMINI e
 ```
 
 ## Prerequisites
@@ -172,7 +169,7 @@ python scripts/warmup.py
 streamlit run ui/streamlit_app.py
 ```
 
-### 5-Minute Demo Script
+### 5-Minute Demonstration
 
 1. **Start the application**:
 
@@ -248,7 +245,7 @@ RESUME_EMBEDDING_MODEL=all-MiniLM-L6-v2 # Model for resume embeddings
 RESUME_STORAGE_PATH=./data/resumes       # Resume files location
 ```
 
-### Performance Tuning
+### Performance Considerations
 
 The system includes several performance optimizations:
 
@@ -290,7 +287,7 @@ The system includes several performance optimizations:
 - **Mode**: AI mode (with citations) or Basic mode (retrieval-only)
 - **Cache**: Redis connection status and hit rate
 
-### Resume Screening (Beta Feature)
+### Resume Screening Feature
 
 Upload job descriptions and candidate resumes to get:
 
@@ -299,18 +296,18 @@ Upload job descriptions and candidate resumes to get:
 - **Skill match breakdown** with keyword analysis
 - **Automated screening reports** with recommendations
 
-## 🔍 Performance Metrics
+## Performance Metrics
 
 This project is engineered for enterprise-grade performance with measurable optimizations:
 
-### ⚡ Response Times
+### Response Times
 
 - **Cold Start**: ~2-3 seconds (before warm-up)
 - **Warm Start**: ~500ms (after warm-up script)
 - **Low-Latency Mode**: ~200-400ms (with fast models)
 - **Basic Mode**: ~100-200ms (retrieval-only)
 
-### 📊 Optimization Features
+### Optimization Features
 
 - **Warm-up Script**: Pre-initializes vector search and LLM connections
 - **Conversation Caching**: Redis summaries reduce prompt context by ~60%
@@ -318,45 +315,45 @@ This project is engineered for enterprise-grade performance with measurable opti
 - **Smart Chunking**: Optimized document segmentation for relevance
 - **Provider Auto-Fallback**: Zero-downtime switching between LLM providers
 
-### 📈 Scalability Indicators
+### Scalability Indicators
 
 - **Document Capacity**: Tested with 500+ policy documents
 - **Concurrent Users**: Supports multiple sessions via Redis caching
 - **Memory Efficiency**: ~200MB base + ~50MB per 1000 document chunks
 - **Cache Hit Rate**: >80% for repeat questions in the same session
 
-## 🔐 Security & Privacy
+## Security and Privacy
 
-### 🛡️ Data Protection
+### Data Protection
 
 - **Local-First Architecture**: Documents remain on your infrastructure
 - **Minimal API Exposure**: Only processed queries sent to LLM providers
 - **No PII Storage**: Conversation summaries are ephemeral (30-min TTL)
 - **Audit Logging**: Complete request/response tracking for compliance
 
-### 🔑 Secrets Management
+### Secrets Management
 
 - **Environment-Based**: API keys via environment variables only
 - **Runtime Switching**: Change providers without code changes
 - **Graceful Degradation**: Continues operating without API keys
 - **Zero-Knowledge**: No credentials stored in codebase or logs
 
-### 🌐 Network Security
+### Network Security
 
 - **Local Vector DB**: No external database dependencies required
 - **Optional Redis**: Local deployment recommended for sensitive data
 - **HTTPS Ready**: Production deployment supports SSL/TLS termination
 - **Firewall Friendly**: Minimal outbound connections (LLM APIs only)
 
-## 📚 Additional Documentation
+## Additional Documentation
 
-### 📖 Deep Dive Guides
+### Deep Dive Guides
 
 - **[🏗️ How It Works](docs/HOW_IT_WORKS.md)**: Complete architecture and data flow explanation
 - **[🔧 HR Policy RAG Feature](docs/FEATURE_HR_POLICY_RAG.md)**: Detailed feature guide and API documentation
 - **[📋 Development Plan](docs/plan.md)**: Full roadmap, feature specifications, and delivery strategy
 
-### 🔗 Quick Navigation
+### Quick Navigation
 
 | Topic             | Description                                | Link                                                                    |
 | ----------------- | ------------------------------------------ | ----------------------------------------------------------------------- |
@@ -366,7 +363,7 @@ This project is engineered for enterprise-grade performance with measurable opti
 | **Security**      | Privacy, data protection, and deployment   | [View Guide](#-security--privacy)                                       |
 | **API Reference** | Tool interfaces and data schemas           | [View Docs](docs/FEATURE_HR_POLICY_RAG.md#data-flow-query-lifecycle)    |
 
-### 🚀 Deployment Resources
+### Deployment Resources
 
 - **Production Setup**: Environment configuration for enterprise deployment
 - **Docker Support**: Containerization guidelines and best practices
@@ -375,7 +372,7 @@ This project is engineered for enterprise-grade performance with measurable opti
 
 ---
 
-## 🏆 Acknowledgments
+## Acknowledgments
 
 Built with ❤️ by [Sanjan B M](https://www.linkedin.com/in/sanjan-bm/) using industry-leading open-source technologies:
 
@@ -385,11 +382,11 @@ Built with ❤️ by [Sanjan B M](https://www.linkedin.com/in/sanjan-bm/) using 
 - **[OpenAI](https://openai.com/)** & **[Google Gemini](https://ai.google.dev/)**: Large language model providers
 - **[Sentence Transformers](https://www.sbert.net/)**: Text embedding models
 
-### 📄 License
+### License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### 🤝 Contributing
+### Contributing
 
 Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/sanjanb/mcp-agent/issues) and join our development community.
 
@@ -397,7 +394,7 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 
 **⭐ Star this repository** if you find it useful and **share it** with your team to accelerate HR automation in your organization!
 
-## 🔧 Project Structure
+## Project Structure
 
 ```
 mcp-agent/
@@ -436,7 +433,7 @@ mcp-agent/
 └── 📋 README.md                     # This comprehensive guide
 ```
 
-### 🏗️ Core Components
+### Core Components
 
 | Component            | Purpose                  | Key Features                                           |
 | -------------------- | ------------------------ | ------------------------------------------------------ |
@@ -448,16 +445,16 @@ mcp-agent/
 | **Cache Layer**      | Performance optimization | Redis backend, conversation summaries, TTL management  |
 | **Resume Screening** | Candidate ranking        | Skill matching, snippet extraction, scoring algorithms |
 
-## 🚀 Extensibility & Future Roadmap
+## Extensibility and Roadmap
 
-### 🔧 Easy Extensions
+### Extension Points
 
 - **Add LLM Providers**: Implement new provider adapters with minimal changes
 - **New MCP Tools**: Drop-in tool additions without UI modifications
 - **Storage Backends**: Swap Chroma/Redis with enterprise alternatives
 - **Authentication**: Add SSO/LDAP integration for enterprise deployment
 
-### 🗺️ Roadmap Features
+### Planned Phases
 
 #### Phase 1 - Core Enhancements (Next 2 Weeks)
 
@@ -480,18 +477,18 @@ mcp-agent/
 - [ ] **Advanced Summarization**: Meeting notes and policy updates
 - [ ] **Integration APIs**: REST/GraphQL endpoints for enterprise systems
 
-### 🔌 Integration Possibilities
+### Integration Targets
 
 - **HRIS Systems**: Workday, BambooHR, ADP integration
 - **Collaboration Tools**: Slack, Teams, Discord bots
 - **Document Management**: SharePoint, Google Drive connectors
 - **Ticketing Systems**: ServiceNow, Jira workflow automation
 
-## 🛠️ Troubleshooting & Support
+## Troubleshooting and Support
 
-### Common Issues & Solutions
+### Common Issues and Solutions
 
-#### 🤖 No AI Responses
+#### No AI Responses
 
 **Problem**: System only returns basic retrieval results
 
@@ -502,7 +499,7 @@ $env:OPENAI_API_KEY = "your-openai-key"
 $env:GEMINI_API_KEY = "your-gemini-key"
 ```
 
-#### 📚 No Documents Found
+#### No Documents Found
 
 **Problem**: "No relevant documents found" error
 
@@ -513,7 +510,7 @@ $env:GEMINI_API_KEY = "your-gemini-key"
 python setup.py
 ```
 
-#### 🐌 Slow First Response
+#### Slow Initial Response
 
 **Problem**: Initial query takes >5 seconds
 
@@ -523,7 +520,7 @@ python scripts/warmup.py
 # Then enable low-latency mode in sidebar
 ```
 
-#### 💾 Cache Warnings
+#### Cache Warnings
 
 **Problem**: Redis connection errors in logs
 
@@ -535,7 +532,7 @@ python scripts/warmup.py
 # Linux: sudo apt-get install redis-server
 ```
 
-#### 🔧 Import Errors
+#### Import Errors
 
 **Problem**: Module import failures
 
@@ -544,14 +541,41 @@ python scripts/warmup.py
 pip install --upgrade -r requirements.txt
 ```
 
-### 📞 Getting Help
+### Getting Help
 
 - **📖 Documentation**: Check `docs/HOW_IT_WORKS.md` for detailed technical info
 - **🐛 Bug Reports**: Open issues on GitHub with error logs and environment details
 - **💡 Feature Requests**: Use the project's GitHub discussions or issues
 - **📧 Direct Support**: Contact [sanjanacharaya1234@gmail.com](mailto:sanjanacharaya1234@gmail.com)
 
-### 🔍 Debug Mode
+### Debug Mode
+
+## Resume Screening: Clean Professional Output
+
+The resume screening component provides a structured, defensible evaluation:
+
+1. Normalization: Each resume is parsed and converted to plain text; extraneous formatting is removed.
+2. Embedding Generation: Candidate resumes and the provided job description are embedded using a sentence transformer model.
+3. Similarity Scoring: Cosine similarity yields a base relevancy score per candidate.
+4. Skill Matching: Extracted skill keywords (configurable) are cross‑referenced; partial matches contribute weighted increments.
+5. Ranked Output: Final report presents an ordered candidate list with numeric scores, matched skill counts, and representative text snippets.
+6. Transparency: All scoring components (similarity, skill coverage) may be surfaced for audit or exported.
+
+Design principles for this feature:
+- Deterministic scoring pipeline (no hidden stochastic weighting)
+- Separation of retrieval, transformation, and scoring for maintainability
+- Configurable embedding model and skill taxonomy
+- Clear output formatting suitable for internal review or ATS integration
+
+Future enhancements under consideration include adaptive weighting based on role profiles, panel review comment integration, and automated discrepancy highlighting (e.g., claimed skills vs. textual evidence).
+
+## Professional Notes
+
+This repository intentionally omits emojis and informal markers for a neutral, corporate documentation standard. All sections now focus on clarity, traceability, and reproducibility of behavior.
+
+---
+
+For any additional adjustments (e.g., adding benchmarking scripts, integrating authentication, or exporting screening reports) please open an issue or submit a pull request.
 
 Enable detailed logging for troubleshooting:
 
