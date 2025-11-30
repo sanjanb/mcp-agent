@@ -79,6 +79,7 @@ Layered MCP architecture with clear separation of responsibilities:
 - LLM Providers: OpenAI / Gemini selection with fallback logic
 
 ```mermaid
+%% Monochrome (Black & White) Architecture Diagram
 flowchart LR
     subgraph UI
         ST["Streamlit Chat UI"]
@@ -120,11 +121,12 @@ flowchart LR
     RAG --> GEMINI
     CONV --> CACHE
 
-    classDef ui fill:#e1f5fe,stroke:#0277bd,stroke-width:1px
-    classDef mcp fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px
-    classDef tool fill:#e8f5e8,stroke:#388e3c,stroke-width:1px
-    classDef data fill:#fff3e0,stroke:#f57c00,stroke-width:1px
-    classDef prov fill:#fce4ec,stroke:#c2185b,stroke-width:1px
+    %% Grayscale styles
+    classDef ui fill:#ffffff,stroke:#000000,stroke-width:1px
+    classDef mcp fill:#f5f5f5,stroke:#000000,stroke-width:1px
+    classDef tool fill:#ffffff,stroke:#000000,stroke-dasharray: 3 2
+    classDef data fill:#f5f5f5,stroke:#000000,stroke-width:1px
+    classDef prov fill:#ffffff,stroke:#000000,stroke-width:1px
     class ST ui
     class Router mcp
     class PS,RAG,CONV,CACHE,RS tool
