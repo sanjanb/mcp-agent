@@ -562,6 +562,7 @@ The resume screening component provides a structured, defensible evaluation:
 6. Transparency: All scoring components (similarity, skill coverage) may be surfaced for audit or exported.
 
 Design principles for this feature:
+
 - Deterministic scoring pipeline (no hidden stochastic weighting)
 - Separation of retrieval, transformation, and scoring for maintainability
 - Configurable embedding model and skill taxonomy
