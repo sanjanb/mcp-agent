@@ -69,38 +69,44 @@ Quick Links: [Quick Start](#quick-start-windows-powershell) · [Architecture](#a
 
 Layered MCP architecture with clear separation of responsibilities:
 
-- UI Layer: Streamlit chat interface with streaming responses
-- MCP Server: Tool orchestration, routing, health/status checks
-- Policy RAG Tool: Document ingestion, chunking, vector similarity retrieval
-- RAG Engine: Prompt assembly, synthesis, citation formatting
-- Resume Screening Tool: Embedding-based candidate evaluation and ranking
-- Conversation Manager: History summarization and context optimization
-- Cache Layer: Redis (optional) for summaries and metrics
-- Data Stores: Chroma vector database + local document corpus
+- UI (Streamlit): Chat interface, status display, streaming, user settings
+- MCP Server & Router: Tool registration, orchestration, health/status checks
+- Tools – Policy RAG: Ingestion, chunking, similarity retrieval, prompt assembly, citation formatting
+- Tool – Resume Screening: Embedding-based candidate scoring (relevancy + skill coverage) and ranked output
+- Conversation Manager: History management, summary generation, context size reduction
+- Cache Layer: Redis or in‑memory summaries and lightweight metrics
+- Data Stores: Chroma vector database and local HR policy corpus; resume storage for screening
+- LLM Providers: OpenAI / Gemini selection with fallback logic
 
 ```mermaid
-flowchart TB
+flowchart LR
     subgraph UI
-        ST["Streamlit UI\nChat + Streaming + Controls"]
+        ST["Streamlit Chat UI"]
     end
-    subgraph Server
-        Router["MCP Server\nRouting + Health"]
+
+    subgraph MCP["MCP Server & Router"]
+        Router["Router / Health"]
     end
-    subgraph Tools
-        PS["Policy Search\nVector Retrieval"]
-        RAG["RAG Engine\nPrompt + Citations"]
-        RS["Resume Screening\nRanking + Matching"]
-        CONV["Conversation Manager\nSummarization"]
-        CACHE["Cache Layer\nRedis / Memory"]
+
+    subgraph TOOLS["Tools"]
+        subgraph RAG_GROUP["Policy RAG"]
+            PS["PolicySearchTool"]
+            RAG["RAGEngine"]
+            CONV["ConversationManager"]
+            CACHE[("Redis / In-Memory Cache")]
+        end
+        RS["ResumeScreeningTool"]
     end
-    subgraph Data
-        CHROMA["Chroma DB\nEmbeddings"]
-        DOCS["HR Docs"]
-        RESUMES["Resumes"]
+
+    subgraph DATA["Data Stores"]
+        CHROMA[("Chroma Vector DB")]
+        DOCS[("HR Documents")]
+        RESUMES[("Resumes Store")]
     end
-    subgraph Providers
-        OPENAI["OpenAI Models"]
-        GEMINI["Gemini Models"]
+
+    subgraph LLM["Providers"]
+        OPENAI["OpenAI"]
+        GEMINI["Gemini"]
     end
 
     ST --> Router
@@ -114,16 +120,16 @@ flowchart TB
     RAG --> GEMINI
     CONV --> CACHE
 
-    classDef a fill:#e1f5fe,stroke:#0277bd,stroke-width:1px
-    classDef b fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px
-    classDef c fill:#e8f5e8,stroke:#388e3c,stroke-width:1px
-    classDef d fill:#fff3e0,stroke:#f57c00,stroke-width:1px
-    classDef e fill:#fce4ec,stroke:#c2185b,stroke-width:1px
-    class ST a
-    class Router b
-    class PS,RAG,RS,CONV,CACHE c
-    class CHROMA,DOCS,RESUMES d
-    class OPENAI,GEMINI e
+    classDef ui fill:#e1f5fe,stroke:#0277bd,stroke-width:1px
+    classDef mcp fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px
+    classDef tool fill:#e8f5e8,stroke:#388e3c,stroke-width:1px
+    classDef data fill:#fff3e0,stroke:#f57c00,stroke-width:1px
+    classDef prov fill:#fce4ec,stroke:#c2185b,stroke-width:1px
+    class ST ui
+    class Router mcp
+    class PS,RAG,CONV,CACHE,RS tool
+    class CHROMA,DOCS,RESUMES data
+    class OPENAI,GEMINI prov
 ```
 
 ## Prerequisites
