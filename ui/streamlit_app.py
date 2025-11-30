@@ -20,6 +20,7 @@ try:
     from tools.policy_rag.mcp_tool import PolicySearchTool
     from tools.policy_rag.rag_engine import RAGEngine, ConversationManager
     from mcp_server.server import MCPServer, MCPRouter
+    from tools.resume_screening.mcp_tool import mcp_rank_resumes
 except ImportError as e:
     st.error(f"Failed to import required modules: {e}")
     st.error("Please make sure all dependencies are installed and the project structure is correct.")
@@ -142,6 +143,8 @@ def main():
         <p>Ask me anything about company policies, benefits, and HR procedures!</p>
     </div>
     """, unsafe_allow_html=True)
+
+    tab_policies, tab_resumes = st.tabs(["Policies", "Resume Screening"])
     
     # Initialize components
     components = initialize_components()
@@ -192,108 +195,135 @@ def main():
         max_results = st.slider("Max search results", 1, 10, 5)
         show_debug = st.checkbox("Show debug info", False)
     
-    # Initialize session state
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-    
-    if "user_id" not in st.session_state:
-        st.session_state.user_id = f"user_{int(time.time())}"
-    
-    # Display conversation history
-    if st.session_state.messages:
-        st.subheader("Conversation")
-        for message in st.session_state.messages:
-            display_message(
-                message["role"], 
-                message["content"], 
-                message.get("metadata")
-            )
-    else:
-        st.info("Welcome! Ask me any HR-related question to get started.")
-    
-    # Chat input
-    st.subheader("Ask a Question")
-    user_input = st.text_area(
-        "Your question:",
-        placeholder="e.g., How many vacation days do I get? What's the remote work policy?",
-        height=100,
-        key="user_input"
-    )
-    
-    col1, col2 = st.columns([1, 4])
-    with col1:
-        ask_button = st.button("Ask Question", type="primary")
-    
-    # Process user input
-    if ask_button and user_input.strip():
-        with st.spinner("Thinking..."):
-            try:
-                # Add user message to conversation
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": user_input
-                })
-                components["conv_manager"].add_turn(
-                    st.session_state.user_id, "user", user_input
+    with tab_policies:
+        # Initialize session state
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+        if "user_id" not in st.session_state:
+            st.session_state.user_id = f"user_{int(time.time())}"
+
+        # Display conversation history
+        if st.session_state.messages:
+            st.subheader("Conversation")
+            for message in st.session_state.messages:
+                display_message(
+                    message["role"], 
+                    message["content"], 
+                    message.get("metadata")
                 )
-                
-                # Search for relevant policy chunks
-                search_result = components["policy_tool"].search_policies(
-                    user_input, top_k=max_results
-                )
-                
-                if show_debug:
-                    st.expander("Debug: Search Results").json(search_result)
-                
-                # Generate response using RAG
-                conversation_history = components["conv_manager"].get_history(
-                    st.session_state.user_id
-                )[:-1]  # Exclude the current question
-                
-                rag_response = components["rag_engine"].generate_response(
-                    user_input,
-                    search_result.get("chunks", []),
-                    conversation_history
-                )
-                
-                if show_debug:
-                    st.expander("Debug: RAG Response").json(rag_response)
-                
-                # Display and store response
-                if rag_response["success"]:
-                    response_text = rag_response["response"]
-                    
-                    # Add assistant response to conversation
+        else:
+            st.info("Welcome! Ask me any HR-related question to get started.")
+
+        # Chat input
+        st.subheader("Ask a Question")
+        user_input = st.text_area(
+            "Your question:",
+            placeholder="e.g., How many vacation days do I get? What's the remote work policy?",
+            height=100,
+            key="user_input"
+        )
+
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            ask_button = st.button("Ask Question", type="primary")
+
+        # Process user input
+        if ask_button and user_input.strip():
+            with st.spinner("Thinking..."):
+                try:
+                    # Add user message to conversation
                     st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": response_text,
-                        "metadata": rag_response
+                        "role": "user", 
+                        "content": user_input
                     })
                     components["conv_manager"].add_turn(
-                        st.session_state.user_id, "assistant", response_text
+                        st.session_state.user_id, "user", user_input
                     )
                     
-                else:
-                    error_message = f"I apologize, but I encountered an error: {rag_response.get('error', 'Unknown error')}"
+                    # Search for relevant policy chunks
+                    search_result = components["policy_tool"].search_policies(
+                        user_input, top_k=max_results
+                    )
+                    
+                    if show_debug:
+                        st.expander("Debug: Search Results").json(search_result)
+                    
+                    # Generate response using RAG
+                    conversation_history = components["conv_manager"].get_history(
+                        st.session_state.user_id
+                    )[:-1]  # Exclude the current question
+                    
+                    rag_response = components["rag_engine"].generate_response(
+                        user_input,
+                        search_result.get("chunks", []),
+                        conversation_history
+                    )
+                    
+                    if show_debug:
+                        st.expander("Debug: RAG Response").json(rag_response)
+                    
+                    # Display and store response
+                    if rag_response["success"]:
+                        response_text = rag_response["response"]
+                        
+                        # Add assistant response to conversation
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": response_text,
+                            "metadata": rag_response
+                        })
+                        components["conv_manager"].add_turn(
+                            st.session_state.user_id, "assistant", response_text
+                        )
+                        
+                    else:
+                        error_message = f"I apologize, but I encountered an error: {rag_response.get('error', 'Unknown error')}"
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": error_message
+                        })
+                    
+                    # Clear input and rerun to show new messages
+                    st.session_state.user_input = ""
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"An error occurred: {e}")
                     st.session_state.messages.append({
                         "role": "assistant",
-                        "content": error_message
+                        "content": "I apologize, but I encountered a technical error. Please try again or contact HR directly."
                     })
-                
-                # Clear input and rerun to show new messages
-                st.session_state.user_input = ""
-                st.rerun()
-                
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": "I apologize, but I encountered a technical error. Please try again or contact HR directly."
-                })
-                st.rerun()
+                    st.rerun()
     
-    elif ask_button and not user_input.strip():
-        st.warning("Please enter a question before clicking 'Ask Question'.")
+        elif ask_button and not user_input.strip():
+            st.warning("Please enter a question before clicking 'Ask Question'.")
+
+    with tab_resumes:
+        st.subheader("Rank Candidates")
+        jd_text = st.text_area("Job Description", placeholder="Paste the job description here", key="jd_text")
+        skills_input = st.text_input("Target Skills (comma-separated)", value="", key="skills_input")
+        skills = [s.strip() for s in skills_input.split(",") if s.strip()] if skills_input else []
+
+        uploaded_files = st.file_uploader("Upload resumes (PDF or TXT)", type=["pdf", "txt"], accept_multiple_files=True)
+        rank_btn = st.button("Rank Candidates", disabled=not uploaded_files or not jd_text.strip())
+        if rank_btn:
+            resumes_payload = []
+            for f in uploaded_files:
+                resumes_payload.append({
+                    "filename": f.name,
+                    "content": f.getvalue(),
+                })
+            jd_payload = {"text": jd_text, "skills": skills}
+            with st.spinner("Scoring resumes..."):
+                ranked = mcp_rank_resumes(resumes_payload, jd_payload)
+            st.success(f"Ranked {len(ranked)} candidates")
+            for i, cand in enumerate(ranked, start=1):
+                st.markdown(f"**{i}. {cand['filename']}** — Score: `{cand['score']:.3f}`")
+                if cand.get("matched_skills"):
+                    st.caption("Matched skills: " + ", ".join(cand["matched_skills"]))
+                with st.expander("Top snippets"):
+                    for snip in cand.get("top_snippets", [])[:3]:
+                        st.write(snip)
     
     # Footer
     st.markdown("---")
