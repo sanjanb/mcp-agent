@@ -97,6 +97,9 @@ def main():
             st.session_state.messages = []
         if "user_id" not in st.session_state:
             st.session_state.user_id = f"user_{int(time.time())}"
+        # Ensure user_input key exists before widget instantiation to avoid post-creation mutation errors
+        if "user_input" not in st.session_state:
+            st.session_state["user_input"] = ""
         if st.session_state.messages:
             st.subheader("Conversation")
             for m in st.session_state.messages:
@@ -104,7 +107,12 @@ def main():
         else:
             st.info("Welcome! Ask any HR-related question to get started.")
         st.subheader("Ask a Question")
-        user_input = st.text_area("Your question:", placeholder="e.g., How many vacation days do I get?", height=100, key="user_input")
+        user_input = st.text_area(
+            "Your question:",
+            placeholder="e.g., How many vacation days do I get?",
+            height=100,
+            key="user_input",
+        )
         ask_button = st.button("Ask Question", key="ask_btn")
         if ask_button and user_input.strip():
             with st.spinner("Thinking..."):
@@ -125,11 +133,13 @@ def main():
                     else:
                         err = rag_response.get("error", "Unknown error")
                         st.session_state.messages.append({"role": "assistant", "content": f"Error: {err}"})
-                    st.session_state.user_input = ""
+                    # Clear input safely before rerun without triggering mutation error
+                    st.session_state["user_input"] = ""
                     st.rerun()
                 except Exception as exc:
-                    st.error(f"An error occurred: {exc}")
-                    st.session_state.messages.append({"role": "assistant", "content": "Technical error. Please try again or contact HR."})
+                    # Suppress raw errors in frontend; log internally instead
+                    print(f"Internal error while processing question: {exc}", file=sys.stderr)
+                    st.session_state.messages.append({"role": "assistant", "content": "Technical issue encountered. Please retry shortly."})
                     st.rerun()
         elif ask_button and not user_input.strip():
             st.warning("Please enter a question before clicking 'Ask Question'.")
