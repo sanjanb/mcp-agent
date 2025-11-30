@@ -68,6 +68,7 @@ def main():
             st.success("System is healthy")
         else:
             st.error("System issues detected")
+
         try:
             stats = components["policy_tool"].get_database_stats()
             if stats and not stats.get("error"):
@@ -78,10 +79,14 @@ def main():
                 st.warning("Database statistics unavailable")
         except Exception as exc:
             st.warning(f"Could not load database stats: {exc}")
+
         st.header("Settings")
         max_results = st.slider("Max search results", 1, 10, 5)
         show_debug = st.checkbox("Show debug info", False)
-        if st.button("Clear Conversation"):
+
+        st.header("Controls")
+        clear_clicked = st.button("Clear Conversation", key="clear_btn")
+        if clear_clicked:
             if "user_id" in st.session_state:
                 components["conv_manager"].clear_history(st.session_state.user_id)
             st.session_state.messages = []
@@ -100,7 +105,7 @@ def main():
             st.info("Welcome! Ask any HR-related question to get started.")
         st.subheader("Ask a Question")
         user_input = st.text_area("Your question:", placeholder="e.g., How many vacation days do I get?", height=100, key="user_input")
-        ask_button = st.button("Ask Question")
+        ask_button = st.button("Ask Question", key="ask_btn")
         if ask_button and user_input.strip():
             with st.spinner("Thinking..."):
                 try:
@@ -135,7 +140,7 @@ def main():
         skills_input = st.text_input("Target Skills (comma-separated)", value="", key="skills_input")
         skills = [s.strip() for s in skills_input.split(",") if s.strip()] if skills_input else []
         uploaded_files = st.file_uploader("Upload resumes (PDF or TXT)", type=["pdf", "txt"], accept_multiple_files=True)
-        rank_btn = st.button("Rank Candidates", disabled=not uploaded_files or not jd_text.strip())
+        rank_btn = st.button("Rank Candidates", key="rank_btn", disabled=not uploaded_files or not jd_text.strip())
         if rank_btn:
             resumes_payload = [{"filename": f.name, "content": f.getvalue()} for f in uploaded_files]
             jd_payload = {"text": jd_text, "skills": skills}
