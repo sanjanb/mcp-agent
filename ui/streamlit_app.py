@@ -54,8 +54,8 @@ def display_message(role, content, metadata=None):
 
 def main():
     st.title("HR Assistant Agent")
-    st.write("Ask questions about company policies, benefits, and HR procedures.")
-    tab_policies, tab_resumes = st.tabs(["Policies", "Resume Screening"])
+    st.write("Ask questions about company policies, benefits, HR procedures, or track onboarding.")
+    tab_policies, tab_resumes, tab_onboarding = st.tabs(["Policies", "Resume Screening", "Onboarding"])
     components = initialize_components()
     if not components:
         st.error("System initialization failed. Check logs and try again.")
@@ -164,6 +164,59 @@ def main():
                 with st.expander("Top snippets"):
                     for snip in cand.get("top_snippets", [])[:3]:
                         st.write(snip)
+
+    # Onboarding Tab
+    with tab_onboarding:
+        st.subheader("Onboarding Tasks")
+        from pathlib import Path as _P
+        tasks_file = _P(project_root / "data" / "onboarding_tasks.json")
+        if "onboarding_role" not in st.session_state:
+            st.session_state.onboarding_role = "engineering"
+        # Load roles
+        try:
+            if tasks_file.exists():
+                raw = tasks_file.read_text(encoding="utf-8")
+                import json as _json
+                data = _json.loads(raw)
+                roles = list(data.keys())
+            else:
+                data, roles = {}, []
+        except Exception as exc:
+            roles, data = [], {}
+            print(f"Failed to load onboarding tasks: {exc}", file=sys.stderr)
+        role = st.selectbox("Role", roles, index=roles.index(st.session_state.onboarding_role) if roles and st.session_state.onboarding_role in roles else 0, key="onboarding_role_select") if roles else None
+        if role:
+            st.session_state.onboarding_role = role
+            # Call tool to get tasks
+            tasks_resp = components["server"].call_tool("onboarding_get_tasks", {"role": role})
+            status_resp = components["server"].call_tool("onboarding_get_status", {"role": role})
+            if tasks_resp.get("success"):
+                tasks = tasks_resp["result"].get("tasks", []) if isinstance(tasks_resp.get("result"), dict) else tasks_resp.get("tasks", [])
+                st.caption(f"Progress: {status_resp.get('result', {}).get('percent_complete', 0)}% complete")
+                # Prepare checkbox states
+                for t in tasks:
+                    tid = t.get("id")
+                    completed = t.get("completed", False)
+                    cb_key = f"onb_task_{role}_{tid}"
+                    st.checkbox(f"[{tid}] {t.get('task')}", value=completed, key=cb_key)
+                update = st.button("Update Completed Tasks", key="onboarding_update_btn")
+                if update:
+                    # Iterate tasks; mark newly checked ones
+                    changes = 0
+                    for t in tasks:
+                        tid = t.get("id")
+                        cb_key = f"onb_task_{role}_{tid}"
+                        desired = st.session_state.get(cb_key, False)
+                        if desired and not t.get("completed"):
+                            resp = components["server"].call_tool("onboarding_mark_completed", {"role": role, "task_id": tid})
+                            if resp.get("success"):
+                                changes += 1
+                    st.success(f"Updated {changes} task(s)")
+                    st.rerun()
+            else:
+                st.info("No tasks found or role unavailable.")
+        else:
+            st.info("No onboarding roles available.")
 
     st.markdown("---")
     st.markdown("HR Assistant Agent powered by MCP (Model Context Protocol)\n\nFor urgent matters, please contact HR directly.")
