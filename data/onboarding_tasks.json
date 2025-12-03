@@ -1,14 +1,46 @@
 {
   "engineering": [
-    { "id": 1, "task": "Set up email", "completed": false },
-    { "id": 2, "task": "Read engineering handbook", "completed": false },
-    { "id": 3, "task": "Join Slack channels", "completed": false },
-    { "id": 4, "task": "Clone core repositories", "completed": false },
-    { "id": 5, "task": "Run local dev environment", "completed": false }
+    {
+      "id": 1,
+      "task": "Set up email",
+      "completed": true
+    },
+    {
+      "id": 2,
+      "task": "Read engineering handbook",
+      "completed": true
+    },
+    {
+      "id": 3,
+      "task": "Join Slack channels",
+      "completed": true
+    },
+    {
+      "id": 4,
+      "task": "Clone core repositories",
+      "completed": false
+    },
+    {
+      "id": 5,
+      "task": "Run local dev environment",
+      "completed": false
+    }
   ],
   "hr": [
-    { "id": 1, "task": "Access HRIS portal", "completed": false },
-    { "id": 2, "task": "Review benefits guide", "completed": false },
-    { "id": 3, "task": "Complete compliance training", "completed": false }
+    {
+      "id": 1,
+      "task": "Access HRIS portal",
+      "completed": false
+    },
+    {
+      "id": 2,
+      "task": "Review benefits guide",
+      "completed": false
+    },
+    {
+      "id": 3,
+      "task": "Complete compliance training",
+      "completed": false
+    }
   ]
 }
