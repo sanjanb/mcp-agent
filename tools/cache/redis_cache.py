@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 try:
     import redis
-except Exception:  # pragma: no cover
+except Exception: 
     redis = None
 
 
